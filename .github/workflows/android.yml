@@ -71,10 +71,10 @@ jobs:
           cp "$APK" "dist/nut-bolt-sort-v$VERSION.apk"
           ls -la dist
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          "$BT/aapt2" dump badging dist/*.apk | grep -E "^package:|sdkVersion|targetSdkVersion"
+          "$BT/aapt2" dump badging dist/*.apk | grep -iE "^package:|sdkversion"
           if [ -n "$ANDROID_KEYSTORE_FILE" ]; then
             "$BT/apksigner" verify --print-certs dist/*.apk | head -5
-            jarsigner -verify dist/*.aab | tail -1
+            jarsigner -verify dist/*.aab | grep -E "jar verified|unsigned"
           fi
           rm -f "$RUNNER_TEMP/upload.jks"
 
