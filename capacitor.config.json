@@ -1,0 +1,11 @@
+{
+  "appId": "com.offerpk.nutboltsort",
+  "appName": "Nut & Bolt Sort",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#15181d"
+  },
+  "plugins": {
+    "AdMob": {}
+  }
+}

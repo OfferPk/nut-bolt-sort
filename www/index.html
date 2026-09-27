@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#15181d">
+  <meta name="description" content="Nut & Bolt Sort: a sleek, offline nut and bolt color sort puzzle. Unscrew the nuts and sort every color onto its own bolt.">
+  <title>Nut &amp; Bolt Sort</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-graphite bolt-steel nut-anodized">
+  <div id="app">
+    <!-- HOME -->
+    <section id="home" class="screen">
+      <div class="home-coins"><span class="coin-ico"></span><span class="coins-val">0</span></div>
+      <div class="logo">
+        <div class="logo-art" aria-hidden="true">
+          <div class="la-rod"></div>
+          <div class="la-nut" style="--c:#e0892b;bottom:52%"></div>
+          <div class="la-nut" style="--c:#1fa9c4;bottom:36%"></div>
+          <div class="la-nut" style="--c:#d8453f;bottom:20%"></div>
+          <div class="la-base"></div>
+        </div>
+        <h1>NUT &amp; BOLT<span>SORT</span></h1>
+        <p class="tag">Unscrew. Sort. Tighten.</p>
+      </div>
+      <button id="btn-play" class="btn primary big"><span>PLAY</span><small id="play-level">Level 1</small></button>
+      <div class="home-row">
+        <button id="btn-shop" class="btn plate">🛠 Workshop</button>
+        <button id="btn-settings-home" class="btn plate">⚙ Settings</button>
+      </div>
+      <a class="home-link" href="privacy.html">Privacy policy</a>
+    </section>
+
+    <!-- GAME -->
+    <section id="game" class="screen hidden">
+      <header class="topbar">
+        <button id="btn-home" class="icon-btn" aria-label="Home">
+          <svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V20h-5.5v-5h-5v5H4z" fill="currentColor"/></svg>
+        </button>
+        <div class="lvl">
+          <div id="lvl-title">LEVEL 1</div>
+          <div id="lvl-sub" class="sub">3 colors</div>
+        </div>
+        <div class="top-coins"><span class="coin-ico"></span><span class="coins-val">0</span></div>
+        <button id="btn-restart" class="icon-btn" aria-label="Restart level">
+          <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.6 4.7l1.9.6A5 5 0 1 0 12 7v3L7.5 6 12 2z" fill="currentColor"/></svg>
+        </button>
+      </header>
+      <div id="board-wrap"><div id="board"></div></div>
+      <footer class="toolbar">
+        <button id="btn-undo" class="tool">
+          <svg viewBox="0 0 24 24"><path d="M9 7V3L2.5 9.5 9 16v-4.1c4.4 0 7.5 1.4 9.7 4.6-.9-4.6-3.7-9-9.7-9.5z" fill="currentColor"/></svg>
+          <span>Undo</span>
+        </button>
+        <button id="btn-hint" class="tool rewarded">
+          <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2zM9 19h6v1.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 20.5z" fill="currentColor"/></svg>
+          <span>Hint</span><em class="ad-badge">▶ AD</em>
+        </button>
+        <button id="btn-extra" class="tool rewarded">
+          <svg viewBox="0 0 24 24"><path d="M12 2 20.7 7v10L12 22l-8.7-5V7zm-1 6v3H8v2h3v3h2v-3h3v-2h-3V8z" fill="currentColor"/></svg>
+          <span>+1 Bolt</span><em class="ad-badge">▶ AD</em>
+        </button>
+      </footer>
+      <div id="banner-slot" aria-hidden="true"></div>
+    </section>
+
+    <!-- WIN -->
+    <div id="win" class="overlay hidden">
+      <div class="panel win-panel">
+        <div class="win-kicker">LEVEL <span id="win-level">1</span></div>
+        <h2>COMPLETE</h2>
+        <div class="win-stats">
+          <div><b id="win-moves">0</b><span>moves</span></div>
+          <div><b id="win-coins">+0</b><span>coins</span></div>
+        </div>
+        <button id="btn-next" class="btn primary big"><span>NEXT LEVEL</span></button>
+      </div>
+    </div>
+
+    <!-- STUCK -->
+    <div id="stuck" class="overlay hidden">
+      <div class="panel">
+        <h3>No moves left</h3>
+        <p>Undo a move, add a spare bolt, or restart. Your call.</p>
+        <div class="panel-actions col">
+          <button id="stuck-undo" class="btn plate">Undo</button>
+          <button id="stuck-extra" class="btn plate rewarded">+1 Bolt <em class="ad-badge">▶ Watch ad</em></button>
+          <button id="stuck-restart" class="btn plate">Restart level</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOP -->
+    <div id="shop" class="overlay hidden">
+      <div class="panel shop-panel">
+        <div class="panel-head"><h3>Workshop</h3><div class="top-coins"><span class="coin-ico"></span><span class="coins-val">0</span></div><button class="icon-btn close" data-close="shop" aria-label="Close">✕</button></div>
+        <p class="note">Cosmetic finishes only. Earn coins by clearing levels.</p>
+        <div class="tabs">
+          <button class="tab active" data-tab="nut">Nuts</button>
+          <button class="tab" data-tab="bolt">Bolts</button>
+          <button class="tab" data-tab="bg">Backdrops</button>
+        </div>
+        <div id="shop-grid" class="shop-grid"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings" class="overlay hidden">
+      <div class="panel">
+        <div class="panel-head"><h3>Settings</h3><button class="icon-btn close" data-close="settings" aria-label="Close">✕</button></div>
+        <label class="row"><span>Sound effects</span><input type="checkbox" id="set-sound"><i class="sw"></i></label>
+        <label class="row"><span>Haptics</span><input type="checkbox" id="set-haptics"><i class="sw"></i></label>
+        <label class="row"><span>Color marks (color-blind aid)</span><input type="checkbox" id="set-marks"><i class="sw"></i></label>
+        <div class="panel-actions col">
+          <a class="btn plate" href="privacy.html">Privacy policy</a>
+          <button id="btn-privacy-options" class="btn plate hidden">Ad privacy options</button>
+          <button id="btn-reset" class="btn plate danger">Reset progress</button>
+        </div>
+        <p class="ver">Nut &amp; Bolt Sort v1.0.0 · © OfferPk</p>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <div id="fx" aria-hidden="true"></div>
+  </div>
+
+  <script src="js/ads-config.js"></script>
+  <script src="js/adgate.js"></script>
+  <script src="js/ads.js"></script>
+  <script src="js/logic.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/skins.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
