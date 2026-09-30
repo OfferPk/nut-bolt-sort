@@ -382,13 +382,16 @@
   }
 
   function coinReward(level, colors) { return 10 + Math.floor(colors / 2) + (level % 10 === 0 ? 20 : 0); }
+  var winSequence = 0;
 
   async function win() {
+    var sequence = ++winSequence;
     S.won = true;
-    var reward = coinReward(S.level, S.colors);
+    var firstCompletion = S.level > (save.best || 0);
+    var reward = firstCompletion ? coinReward(S.level, S.colors) : 0;
     save.coins += reward;
     save.best = Math.max(save.best || 0, S.level);
-    gate.levelCompleted(S.level);
+    if (firstCompletion) gate.levelCompleted(S.level);
     save.level = S.level + 1;
     save.current = null;
     persist();
@@ -396,6 +399,7 @@
     SFX.win(); haptic('success');
     for (var b = 0; b < S.bolts.length; b++) if (S.bolts[b].length) sparks(b, 8);
     await wait(650);
+    if (sequence !== winSequence || !S.won || !L.isSolved(S.bolts, S.cap)) return;
     $('win-level').textContent = S.level;
     $('win-moves').textContent = S.moves;
     $('win-coins').textContent = '+' + reward;
@@ -413,8 +417,11 @@
   }
 
   function undo() {
-    if (S.busy || S.won || !S.history.length) return;
+    if (S.busy || !S.history.length) return;
     SFX.click(); clearHint();
+    S.won = false;
+    winSequence++;
+    $('win').classList.add('hidden');
     var h = S.history.pop();
     var source = Number.isInteger(h.from) ? h.from : S.bolts.findIndex(function (bolt, i) {
       return h.bolts[i] && bolt.length > h.bolts[i].length;

@@ -19,7 +19,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   page.on('requestfailed', r => errors.push('requestfailed: ' + r.url()));
   page.on('response', r => { if (r.status() >= 400) errors.push('HTTP ' + r.status() + ' ' + r.url()); });
 
-  const st = () => page.evaluate(() => { const s = window.__nbs.state; return { level: s.level, moves: s.moves, bolts: s.bolts.length, won: s.won, extra: s.extraUsed, hist: s.history.length, key: window.__nbs.logic.key(s.bolts) }; });
+  const st = () => page.evaluate(() => { const s = window.__nbs.state; return { level: s.level, moves: s.moves, bolts: s.bolts.length, won: s.won, busy: s.busy, sel: s.sel, liftN: s.liftN, extra: s.extraUsed, hist: s.history.length, key: window.__nbs.logic.key(s.bolts), board: s.bolts.map(b => b.slice()), history: s.history.map(h => ({ bolts: h.bolts.map(b => b.slice()), moves: h.moves, from: h.from })), coins: window.__nbs.save.coins, completions: window.__nbs.gate.state.levelsSince }; });
   async function tap(i) {
     const b = await page.evaluate(i => { const e = document.querySelector(`.bolt[data-index="${i}"] .head`).getBoundingClientRect(); return { x: e.x + e.width / 2, y: e.y + e.height / 2 }; }, i);
     await page.touchscreen.tap(b.x, b.y);
@@ -27,9 +27,12 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   const idle = () => page.waitForFunction(() => !window.__nbs.state.busy, { timeout: 8000 });
   async function play(moves, shot) {
     for (let k = 0; k < moves.length; k++) {
+      const before = await st();
       await tap(moves[k][0]); await idle();
       if (shot && k === shot.at) { await sleep(120); await page.screenshot({ path: shot.path }); }
       await tap(moves[k][1]); await idle();
+      const after = await st();
+      assert(after.moves === before.moves + 1 && after.hist === before.hist + 1, 'solver tap ' + (k + 1) + ' applied one legal move (' + JSON.stringify(moves[k]) + '): ' + JSON.stringify({ before: { moves: before.moves, hist: before.hist }, after: { moves: after.moves, hist: after.hist, won: after.won, busy: after.busy, sel: after.sel, liftN: after.liftN }, status: await page.$eval('#game-status', e => e.textContent) }));
     }
   }
   async function solveCurrent(shot) {
@@ -88,20 +91,54 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   const hintMove = await page.evaluate(() => window.__nbs.state.lastHint);
   assert(Array.isArray(hintMove), 'hint produced a solver move ' + JSON.stringify(hintMove));
 
-  // --- solve level 1 by taps -> win ---
+  await page.tap('#btn-restart'); await sleep(200);
+  s = await st();
+  assert(s.moves === 0 && s.hist === 0 && !s.extra, 'restart restores the untouched Level 1 board for the completion regression');
+  await page.waitForFunction(() => document.querySelector('#toast').classList.contains('hidden'), { timeout: 5000 });
+
+  // --- final move -> immediate Undo, then re-solve without a second reward ---
+  const winSolution = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap); });
+  assert(winSolution && winSolution.length === 8, 'solver found the exact 8-move Level 1 completion path');
+  await page.evaluate(() => {
+    window.__nbs.nextCalls = 0;
+    const maybeInterstitial = window.Ads.maybeInterstitial;
+    window.Ads.maybeInterstitial = function () { window.__nbs.nextCalls++; return maybeInterstitial.apply(this, arguments); };
+  });
+  await play(winSolution.slice(0, -1));
+  const beforeFinal = await st();
+  const lastMove = winSolution[winSolution.length - 1];
+  assert(beforeFinal.moves === 7 && beforeFinal.hist === 7 && !beforeFinal.won, 'board is at 7/8 moves with 7 history entries (moves=' + beforeFinal.moves + ', history=' + beforeFinal.hist + ', won=' + beforeFinal.won + ')');
+  await tap(lastMove[0]); await idle(); await tap(lastMove[1]); await idle();
+  s = await st();
+  assert(s.won && s.moves === 8 && s.hist === 8 && s.coins === 11 && s.completions === 1, 'final move creates the solved 8/8 board, pays exactly +11 and records one completion');
+  assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'completion has not yet advanced to the win panel');
+  await page.focus('#btn-undo');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(m => { const s = window.__nbs.state; return !s.won && !s.busy && s.moves === m; }, { timeout: 8000 }, beforeFinal.moves);
+  s = await st();
+  assert(s.level === 1 && !s.won && s.key === beforeFinal.key && s.moves === beforeFinal.moves, 'immediate Undo restores the exact unsolved board and prior move count');
+  assert(JSON.stringify(s.board) === JSON.stringify(beforeFinal.board) && JSON.stringify(s.history) === JSON.stringify(beforeFinal.history), 'immediate Undo restores the exact board ordering and prior history');
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), lastMove[0]), 'final-move Undo focuses the move source bolt');
+  assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'Undo cancels the pending win panel');
+  assert(s.coins === 11 && s.completions === 1 && await page.evaluate(() => window.__nbs.save.level === 1), 'Undo preserves the already-earned reward/completion and keeps the current level');
+  assert(await page.evaluate(() => window.__nbs.nextCalls === 0), 'Undo does not call the Next-level transition');
+  await sleep(750);
+  assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'cancelled win UI does not reappear after its original delay');
+
   const n1 = await solveCurrent();
   await sleep(900);
   s = await st();
   const winShown = await page.$eval('#win', e => !e.classList.contains('hidden'));
-  assert(s.won && winShown, `level 1 won by taps (${n1} moves) and win panel shown`);
+  assert(s.won && winShown, `level 1 won by taps again (${n1} moves) and win panel shown`);
+  assert(s.coins === 11 && s.completions === 1 && await page.$eval('#win-coins', e => e.textContent === '+0'), 're-solving the completed level neither pays nor records completion twice');
   await page.screenshot({ path: `${OUT}/nbs-win.png` });
-  const coins = await page.evaluate(() => window.__nbs.save.coins);
-  assert(coins > 0, 'coins awarded: ' + coins);
+  const coins = s.coins;
 
   // --- next level ---
   await page.tap('#btn-next'); await sleep(500);
   s = await st();
   assert(s.level === 2 && !s.won, 'Next goes to level 2');
+  assert(await page.evaluate(() => window.__nbs.nextCalls === 1), 'the explicit Next button is the only level transition so far');
 
   // --- reload persistence mid-level ---
   const m2 = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap)[0]; });
