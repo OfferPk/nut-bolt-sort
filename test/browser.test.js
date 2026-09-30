@@ -20,6 +20,14 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   page.on('response', r => { if (r.status() >= 400) errors.push('HTTP ' + r.status() + ' ' + r.url()); });
 
   const st = () => page.evaluate(() => { const s = window.__nbs.state; return { level: s.level, moves: s.moves, bolts: s.bolts.length, won: s.won, busy: s.busy, sel: s.sel, liftN: s.liftN, extra: s.extraUsed, hist: s.history.length, key: window.__nbs.logic.key(s.bolts), board: s.bolts.map(b => b.slice()), history: s.history.map(h => ({ bolts: h.bolts.map(b => b.slice()), moves: h.moves, from: h.from })), coins: window.__nbs.save.coins, completions: window.__nbs.gate.state.levelsSince }; });
+  const winAuditSnapshot = () => page.evaluate(() => {
+    const s = window.__nbs.state;
+    return JSON.stringify({
+      state: { level: s.level, bolts: s.bolts, moves: s.moves, history: s.history, won: s.won },
+      save: window.__nbs.save,
+      stored: localStorage.getItem('nutboltsort.save.v1')
+    });
+  });
   async function tap(i) {
     const b = await page.evaluate(i => { const e = document.querySelector(`.bolt[data-index="${i}"] .head`).getBoundingClientRect(); return { x: e.x + e.width / 2, y: e.y + e.height / 2 }; }, i);
     await page.touchscreen.tap(b.x, b.y);
@@ -168,6 +176,15 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.evaluate(() => document.activeElement.id === 'btn-next'), 'Tab remains contained in the win dialog');
   await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift');
   assert(await page.evaluate(() => document.activeElement.id === 'btn-next'), 'Shift+Tab remains contained in the win dialog');
+  const completedSnapshot = await winAuditSnapshot();
+  await page.keyboard.press('Escape');
+  assert(await page.evaluate(() => !document.getElementById('win').classList.contains('hidden') && document.getElementById('win-dialog').contains(document.activeElement)), 'Escape remains unsupported and leaves focus inside the open win dialog');
+  assert(await winAuditSnapshot() === completedSnapshot, 'Escape leaves the completed board, move/history, reward, unlocks, settings, and saved data unchanged');
+  const backdropPoint = { x: 180, y: 8 };
+  assert(await page.evaluate(p => document.elementFromPoint(p.x, p.y) === document.getElementById('win'), backdropPoint), 'pointer regression targets the win-dialog backdrop');
+  await page.touchscreen.tap(backdropPoint.x, backdropPoint.y);
+  assert(await page.evaluate(() => !document.getElementById('win').classList.contains('hidden') && document.getElementById('win-dialog').contains(document.activeElement)), 'backdrop tap leaves focus inside the open win dialog');
+  assert(await winAuditSnapshot() === completedSnapshot, 'backdrop tap leaves the completed board, move/history, reward, unlocks, settings, and saved data unchanged');
   await page.screenshot({ path: `${OUT}/nbs-win.png` });
   const coins = s.coins;
 

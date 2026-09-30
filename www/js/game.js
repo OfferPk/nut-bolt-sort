@@ -421,7 +421,16 @@
       e.preventDefault(); focusables[0].focus();
     }
   }
+  function containWinFocus(e) {
+    if ($('win').classList.contains('hidden')) return;
+    var panel = $('win-dialog');
+    if (!panel.contains(e.target)) $('btn-next').focus();
+  }
   document.addEventListener('keydown', trapWinTab, true);
+  document.addEventListener('focusin', containWinFocus, true);
+  $('win').addEventListener('pointerdown', function (e) {
+    if (e.target === e.currentTarget) e.preventDefault();
+  });
 
   async function win() {
     var sequence = ++winSequence;
