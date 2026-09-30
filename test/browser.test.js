@@ -72,6 +72,8 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.tap('#btn-undo'); await sleep(200);
   s = await st();
   assert(s.moves === 0 && s.key === before, 'undo restored the exact previous board');
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), first[0]), 'undo restores focus to the move source bolt');
+  assert(await page.$eval('#game-status', e => e.textContent.trim() === 'Move undone. 0 moves made.'), 'undo replaces the stale move announcement with the accurate restored move count');
 
   // --- +1 bolt (rewarded; on web the reward is granted immediately) ---
   const nb = s.bolts;

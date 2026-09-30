@@ -317,7 +317,7 @@
 
   async function doMove(from, to, n) {
     S.busy = true;
-    S.history.push({ bolts: clone(S.bolts), moves: S.moves });
+    S.history.push({ bolts: clone(S.bolts), moves: S.moves, from: from });
     var src = S.bolts[from], run = S.liftN;
     var movedColor = colorName(src[src.length - 1]);
     var liftedEls = els[from].slice(src.length - run);
@@ -416,9 +416,14 @@
     if (S.busy || S.won || !S.history.length) return;
     SFX.click(); clearHint();
     var h = S.history.pop();
+    var source = Number.isInteger(h.from) ? h.from : S.bolts.findIndex(function (bolt, i) {
+      return h.bolts[i] && bolt.length > h.bolts[i].length;
+    });
     S.bolts = h.bolts; S.moves = h.moves; S.sel = -1; S.liftN = 0;
     $('stuck').classList.add('hidden');
     render(); updateButtons(); saveCurrent();
+    if (boltEls[source]) boltEls[source].focus();
+    announce('Move undone. ' + S.moves + (S.moves === 1 ? ' move' : ' moves') + ' made.');
   }
   function restart() {
     if (S.busy || S.won) return;
