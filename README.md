@@ -28,8 +28,8 @@ A sleek, **offline nut-and-bolt color-sort puzzle**. Unscrew stacks of anodized 
 - **Every level is verified solvable.** The generator only accepts a board after the built-in solver (weighted A\* with canonical state hashing plus a DFS fallback, in `www/js/logic.js`) has found a solution that replays correctly. `npm test` regenerates **levels 1–1000**, checks their shape, replays every stored solution and re-solves each one from scratch. This runs in CI on every push.
 - The same solver powers the **Hint**. It works from any position you reach, including after using +1 Bolt, and tells you when a position is a dead end.
 - Screw-twist animations (the nut faces spin as nuts unscrew, fly and tighten), cap-and-spark effects on completed bolts, **WebAudio** metallic sound effects (synthesized, no audio files), and light **haptics** via `@capacitor/haptics`.
-- Progress (level, the board you're partway through, undo history, coins, finishes, settings) is saved in `localStorage`.
-- A color-blind aid (a mark on every nut), and sound and haptics toggles.
+- Progress (level, the board you're partway through, undo history, coins and finishes) is saved in `localStorage`.
+- Sound, haptics and color-blind marks are saved settings; **Reset Progress** clears game progress, coins and finishes without changing these preferences.
 - Industrial, metallic art for a 13+ audience: no mascots, no cartoon style.
 - No build step: open `www/index.html` or serve the folder.
 

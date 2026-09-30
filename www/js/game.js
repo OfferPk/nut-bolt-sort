@@ -241,7 +241,7 @@
     $('lvl-title').textContent = 'LEVEL ' + level;
     $('lvl-sub').textContent = paramsText();
     $('play-level').textContent = 'Level ' + level;
-    $('win').classList.add('hidden'); $('stuck').classList.add('hidden');
+    closeWinPanel(); $('stuck').classList.add('hidden');
     updateButtons();
     render();
     saveCurrent();
@@ -383,6 +383,45 @@
 
   function coinReward(level, colors) { return 10 + Math.floor(colors / 2) + (level % 10 === 0 ? 20 : 0); }
   var winSequence = 0;
+  var winReturnBoltIndex = 0;
+  var winOpener = null;
+
+  function closeWinPanel(restoreOpener) {
+    var opener = winOpener;
+    winOpener = null;
+    $('win').classList.add('hidden');
+    $('game').inert = false;
+    if (restoreOpener && opener && opener.isConnected) opener.focus();
+  }
+  function restoreWinFocus() {
+    var target = boltEls[winReturnBoltIndex] || boltEls[0];
+    if (target) target.focus();
+    else $('btn-play').focus();
+  }
+  function openWinPanel() {
+    var active = document.activeElement;
+    var focusedBolt = active && active.closest ? active.closest('.bolt') : null;
+    winReturnBoltIndex = focusedBolt ? parseInt(focusedBolt.dataset.index, 10) : 0;
+    winOpener = focusedBolt || (active && active !== document.body && active !== document.documentElement ? active : null) || boltEls[winReturnBoltIndex] || null;
+    $('game').inert = true;
+    $('win').classList.remove('hidden');
+    $('btn-next').focus();
+  }
+  function trapWinTab(e) {
+    if (e.key !== 'Tab' || $('win').classList.contains('hidden')) return;
+    var panel = $('win-dialog');
+    var focusables = Array.prototype.filter.call(panel.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ), function (el) { return !el.closest('.hidden') && !el.disabled; });
+    if (!focusables.length) { e.preventDefault(); panel.focus(); return; }
+    var activeIndex = focusables.indexOf(document.activeElement);
+    if (e.shiftKey && activeIndex <= 0) {
+      e.preventDefault(); focusables[focusables.length - 1].focus();
+    } else if (!e.shiftKey && (activeIndex < 0 || activeIndex === focusables.length - 1)) {
+      e.preventDefault(); focusables[0].focus();
+    }
+  }
+  document.addEventListener('keydown', trapWinTab, true);
 
   async function win() {
     var sequence = ++winSequence;
@@ -403,17 +442,18 @@
     $('win-level').textContent = S.level;
     $('win-moves').textContent = S.moves;
     $('win-coins').textContent = '+' + reward;
-    $('win').classList.remove('hidden');
+    openWinPanel();
   }
 
   async function nextLevel() {
     SFX.click();
     $('btn-next').disabled = true;
-    $('win').classList.add('hidden');
+    closeWinPanel(true);
     try { await window.Ads.maybeInterstitial(gate); } catch (e) {}
     persist();
     $('btn-next').disabled = false;
     startLevel(save.level, false);
+    restoreWinFocus();
   }
 
   function undo() {
@@ -421,7 +461,7 @@
     SFX.click(); clearHint();
     S.won = false;
     winSequence++;
-    $('win').classList.add('hidden');
+    closeWinPanel();
     var h = S.history.pop();
     var source = Number.isInteger(h.from) ? h.from : S.bolts.findIndex(function (bolt, i) {
       return h.bolts[i] && bolt.length > h.bolts[i].length;
@@ -577,7 +617,8 @@
   $('btn-privacy-options').addEventListener('click', function () { window.Ads.showPrivacyOptions(); });
   $('btn-reset').addEventListener('click', function () {
     if (!confirm('Reset all progress, coins and finishes?')) return;
-    var ad = save.ad; save = defaults(); save.ad = ad; persist();
+    var ad = save.ad, settings = Object.assign({}, save.settings);
+    save = defaults(); save.ad = ad; save.settings = settings; persist();
     applySkins(); setCoins(); $('settings').classList.add('hidden');
     S.bolts = []; showHome();
   });

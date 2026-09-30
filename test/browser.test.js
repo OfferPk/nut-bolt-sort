@@ -1,5 +1,5 @@
 // Headless Chrome play test at phone size. Plays by tapping bolts like a user and checks:
-// win detection, next level, undo, +1 bolt, hint, reload persistence, no console errors.
+// win detection/dialog keyboard behavior, next level, undo, +1 bolt, hint, reload persistence, reset preferences, no console errors.
 // Usage: node test/browser.test.js <url> [outdir]
 //   needs puppeteer-core (npm i --no-save puppeteer-core) and Chrome (CHROME=/path, default /usr/bin/google-chrome)
 const puppeteer = require(process.env.PUPPETEER || 'puppeteer-core');
@@ -35,10 +35,16 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
       assert(after.moves === before.moves + 1 && after.hist === before.hist + 1, 'solver tap ' + (k + 1) + ' applied one legal move (' + JSON.stringify(moves[k]) + '): ' + JSON.stringify({ before: { moves: before.moves, hist: before.hist }, after: { moves: after.moves, hist: after.hist, won: after.won, busy: after.busy, sel: after.sel, liftN: after.liftN }, status: await page.$eval('#game-status', e => e.textContent) }));
     }
   }
-  async function solveCurrent(shot) {
+  async function solveCurrent(shot, keyboardFinal) {
     const sol = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap); });
     assert(sol && sol.length > 0, 'solver found a solution for the current board (' + (sol || []).length + ' moves)');
-    await play(sol, shot);
+    if (keyboardFinal) {
+      await play(sol.slice(0, -1), shot);
+      const last = sol[sol.length - 1];
+      await page.focus(`.bolt[data-index="${last[0]}"]`); await page.keyboard.press('Enter'); await idle();
+      await page.focus(`.bolt[data-index="${last[1]}"]`); await page.keyboard.press('Enter'); await idle();
+      await page.evaluate(() => { window.__nbs.testWinOpener = document.activeElement; });
+    } else await play(sol, shot);
     return sol.length;
   }
 
@@ -101,14 +107,27 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(winSolution && winSolution.length === 8, 'solver found the exact 8-move Level 1 completion path');
   await page.evaluate(() => {
     window.__nbs.nextCalls = 0;
+    window.__nbs.testWinOpener = null;
+    window.__nbs.nextFocusAtDismissal = null;
     const maybeInterstitial = window.Ads.maybeInterstitial;
-    window.Ads.maybeInterstitial = function () { window.__nbs.nextCalls++; return maybeInterstitial.apply(this, arguments); };
+    window.Ads.maybeInterstitial = function () {
+      window.__nbs.nextCalls++;
+      const active = document.activeElement;
+      window.__nbs.nextFocusAtDismissal = {
+        same: active === window.__nbs.testWinOpener,
+        connected: active.isConnected,
+        boltIndex: active.dataset.index
+      };
+      return maybeInterstitial.apply(this, arguments);
+    };
   });
   await play(winSolution.slice(0, -1));
   const beforeFinal = await st();
   const lastMove = winSolution[winSolution.length - 1];
   assert(beforeFinal.moves === 7 && beforeFinal.hist === 7 && !beforeFinal.won, 'board is at 7/8 moves with 7 history entries (moves=' + beforeFinal.moves + ', history=' + beforeFinal.hist + ', won=' + beforeFinal.won + ')');
-  await tap(lastMove[0]); await idle(); await tap(lastMove[1]); await idle();
+  await page.focus(`.bolt[data-index="${lastMove[0]}"]`); await page.keyboard.press('Enter'); await idle();
+  await page.focus(`.bolt[data-index="${lastMove[1]}"]`); await page.keyboard.press('Enter'); await idle();
+  await page.evaluate(() => { window.__nbs.testWinOpener = document.activeElement; });
   s = await st();
   assert(s.won && s.moves === 8 && s.hist === 8 && s.coins === 11 && s.completions === 1, 'final move creates the solved 8/8 board, pays exactly +11 and records one completion');
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'completion has not yet advanced to the win panel');
@@ -125,12 +144,23 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await sleep(750);
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'cancelled win UI does not reappear after its original delay');
 
-  const n1 = await solveCurrent();
+  const n1 = await solveCurrent(null, true);
   await sleep(900);
   s = await st();
   const winShown = await page.$eval('#win', e => !e.classList.contains('hidden'));
   assert(s.won && winShown, `level 1 won by taps again (${n1} moves) and win panel shown`);
   assert(s.coins === 11 && s.completions === 1 && await page.$eval('#win-coins', e => e.textContent === '+0'), 're-solving the completed level neither pays nor records completion twice');
+  const winDialog = await page.$eval('#win-dialog', e => ({
+    role: e.getAttribute('role'), modal: e.getAttribute('aria-modal'),
+    labelledBy: e.getAttribute('aria-labelledby'),
+    name: document.getElementById(e.getAttribute('aria-labelledby')).textContent.trim()
+  }));
+  assert(winDialog.role === 'dialog' && winDialog.modal === 'true' && winDialog.name === 'COMPLETE', 'win panel exposes a named modal dialog');
+  assert(await page.evaluate(() => document.activeElement.id === 'btn-next' && document.getElementById('game').inert), 'opening the win dialog focuses Next and makes the game inert');
+  await page.keyboard.press('Tab');
+  assert(await page.evaluate(() => document.activeElement.id === 'btn-next'), 'Tab remains contained in the win dialog');
+  await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift');
+  assert(await page.evaluate(() => document.activeElement.id === 'btn-next'), 'Shift+Tab remains contained in the win dialog');
   await page.screenshot({ path: `${OUT}/nbs-win.png` });
   const coins = s.coins;
 
@@ -138,6 +168,11 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.tap('#btn-next'); await sleep(500);
   s = await st();
   assert(s.level === 2 && !s.won, 'Next goes to level 2');
+  assert(await page.evaluate(i => {
+    const f = window.__nbs.nextFocusAtDismissal;
+    return f && f.same && f.connected && Number(f.boltIndex) === i;
+  }, lastMove[1]), 'dialog dismissal returns focus to the exact opening bolt before level navigation');
+  assert(await page.evaluate(i => document.activeElement.classList.contains('bolt') && Number(document.activeElement.dataset.index) === i && !document.getElementById('game').inert, lastMove[1]), 'closing the win dialog restores focus to the corresponding bolt on the next level');
   assert(await page.evaluate(() => window.__nbs.nextCalls === 1), 'the explicit Next button is the only level transition so far');
 
   // --- reload persistence mid-level ---
@@ -161,6 +196,33 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
 
   const canShow = await page.evaluate(() => window.__nbs.gate.canShow(Date.now()));
   assert(canShow === false, 'ad gate blocks interstitials before level 5 / 3 minutes');
+
+  // --- reset preserves settings for a disposable synthetic save only ---
+  await page.evaluate(() => {
+    const fixture = {
+    level: 9, coins: 77, best: 8,
+    owned: { nut: ['anodized', 'neon'], bolt: ['steel'], bg: ['graphite'] },
+    skin: { nut: 'anodized', bolt: 'steel', bg: 'graphite' },
+    settings: { sound: false, haptics: false, marks: true },
+    current: { level: 9, bolts: [], history: [], moves: 2, extraUsed: false }, ad: {}
+    };
+    localStorage.setItem('nutboltsort.save.v1', JSON.stringify(fixture));
+    Object.assign(window.__nbs.save, fixture);
+  });
+  await page.goto(URL, { waitUntil: 'networkidle0' });
+  await page.tap('#btn-settings-home');
+  assert(await page.$eval('#set-sound', e => !e.checked) && await page.$eval('#set-haptics', e => !e.checked) && await page.$eval('#set-marks', e => e.checked), 'synthetic fixture loads its saved sound, haptics, and marks preferences');
+  const resetConfirm = new Promise(resolve => page.once('dialog', resolve));
+  const resetClick = page.tap('#btn-reset');
+  const resetDialog = await resetConfirm;
+  assert(resetDialog.message() === 'Reset all progress, coins and finishes?', 'reset prompt still accurately describes the cleared data');
+  await resetDialog.accept();
+  await resetClick;
+  await page.waitForFunction(() => document.getElementById('settings').classList.contains('hidden'));
+  const resetState = await page.evaluate(() => window.__nbs.save);
+  assert(resetState.settings.sound === false && resetState.settings.haptics === false && resetState.settings.marks === true, 'reset preserves sound, haptics, and marks preferences');
+  assert(resetState.level === 1 && resetState.coins === 0 && resetState.best === 0 && resetState.current === null, 'reset clears level progress, coins, finishes, and the saved board');
+  assert(JSON.stringify(resetState.owned) === JSON.stringify({ nut: ['anodized'], bolt: ['steel'], bg: ['graphite'] }), 'reset clears owned cosmetic finishes');
 
   await sleep(300);
   assert(errors.length === 0, 'no console errors / failed requests' + (errors.length ? ': ' + errors.join(' | ') : ''));

@@ -71,9 +71,9 @@
 
     <!-- WIN -->
     <div id="win" class="overlay hidden">
-      <div class="panel win-panel">
+      <div id="win-dialog" class="panel win-panel" role="dialog" aria-modal="true" aria-labelledby="win-title" tabindex="-1">
         <div class="win-kicker">LEVEL <span id="win-level">1</span></div>
-        <h2>COMPLETE</h2>
+        <h2 id="win-title">COMPLETE</h2>
         <div class="win-stats">
           <div><b id="win-moves">0</b><span>moves</span></div>
           <div><b id="win-coins">+0</b><span>coins</span></div>
