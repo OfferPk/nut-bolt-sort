@@ -587,6 +587,13 @@
     }
   });
   board.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (S.sel < 0 || S.busy || S.won) return;
+      e.preventDefault();
+      S.busy = true;
+      dropSelection().then(function () { S.busy = false; });
+      return;
+    }
     if (e.key !== 'Enter' && e.key !== ' ') return;
     var t = e.target.closest('.bolt');
     if (!t) return;
