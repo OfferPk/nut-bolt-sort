@@ -49,7 +49,9 @@
           <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.6 4.7l1.9.6A5 5 0 1 0 12 7v3L7.5 6 12 2z" fill="currentColor"/></svg>
         </button>
       </header>
-      <div id="board-wrap"><div id="board"></div></div>
+      <div id="board-wrap"><div id="board" role="group" aria-label="Puzzle board" aria-describedby="game-instructions"></div></div>
+      <p id="game-instructions" class="sr-only">Use Tab to focus a bolt. Press Enter or Space to select it, move selected nuts to another bolt, or cancel the selection.</p>
+      <div id="game-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <footer class="toolbar">
         <button id="btn-undo" class="tool">
           <svg viewBox="0 0 24 24"><path d="M9 7V3L2.5 9.5 9 16v-4.1c4.4 0 7.5 1.4 9.7 4.6-.9-4.6-3.7-9-9.7-9.5z" fill="currentColor"/></svg>

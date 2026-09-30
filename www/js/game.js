@@ -84,6 +84,42 @@
   }
   function tr(x, y) { return 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; }
 
+  var announcementTimer = null;
+  function announce(message) {
+    var status = $('game-status');
+    if (!status) return;
+    clearTimeout(announcementTimer);
+    status.textContent = '';
+    announcementTimer = setTimeout(function () { status.textContent = message; }, 30);
+  }
+  function colorName(color) { return (COLORS[color] && COLORS[color].name) || ('color ' + (color + 1)); }
+  function syncBoltAccessibility() {
+    boltEls.forEach(function (be, i) {
+      var bolt = S.bolts[i], label = 'Bolt ' + (i + 1);
+      if (!bolt.length) label += ', empty';
+      else {
+        var groups = [];
+        bolt.forEach(function (color) {
+          var last = groups[groups.length - 1];
+          if (last && last.color === color) last.count++;
+          else groups.push({ color: color, count: 1 });
+        });
+        label += ', ' + bolt.length + ' nuts bottom to top: ' + groups.map(function (g) {
+          return g.count + ' ' + colorName(g.color);
+        }).join(', ');
+        var run = L.topRun(bolt), top = colorName(bolt[bolt.length - 1]);
+        label += '; top ' + run + ' ' + top + (run === 1 ? ' nut' : ' nuts');
+        if (L.isComplete(bolt, S.cap)) label += ', sorted and unavailable';
+      }
+      if (S.sel === i) label += ', selected';
+      else label += ', not selected';
+      be.setAttribute('role', 'button');
+      be.setAttribute('tabindex', '0');
+      be.setAttribute('aria-label', label);
+      be.setAttribute('aria-pressed', String(S.sel === i));
+    });
+  }
+
   // ---------------- geometry ----------------
   function computeGeometry() {
     var W = board.clientWidth, H = board.clientHeight, n = S.bolts.length, C = S.cap;
@@ -157,6 +193,7 @@
       bolt.forEach(function (c) { var n = makeNut(c); board.appendChild(n); els[i].push(n); });
     });
     layout();
+    syncBoltAccessibility();
   }
   function layout() {
     computeGeometry();
@@ -226,6 +263,9 @@
     var bolt = S.bolts[i];
     var run = L.topRun(bolt);
     S.sel = i; S.liftN = run;
+    syncBoltAccessibility();
+    var pickedColor = colorName(bolt[bolt.length - 1]);
+    announce(run + ' ' + pickedColor + (run === 1 ? ' nut selected' : ' nuts selected') + ' from bolt ' + (i + 1) + '. Choose another bolt to move them, or select this bolt again to cancel.');
     var group = els[i].slice(bolt.length - run);
     SFX.lift(run); haptic('light');
     await Promise.all(group.map(function (n, k) {
@@ -238,8 +278,11 @@
   async function dropSelection(quiet) {
     var i = S.sel; if (i < 0) return;
     var bolt = S.bolts[i], run = S.liftN;
+    var returnedColor = colorName(bolt[bolt.length - 1]);
     var group = els[i].slice(bolt.length - run);
     S.sel = -1; S.liftN = 0;
+    syncBoltAccessibility();
+    if (!quiet) announce('Selection cancelled. ' + run + ' ' + returnedColor + (run === 1 ? ' nut returned' : ' nuts returned') + ' to bolt ' + (i + 1) + '.');
     if (!quiet) SFX.cancel();
     await Promise.all(group.map(function (n, k) {
       var from = liftXY(i, k), to = slotXY(i, bolt.length - run + k);
@@ -276,6 +319,7 @@
     S.busy = true;
     S.history.push({ bolts: clone(S.bolts), moves: S.moves });
     var src = S.bolts[from], run = S.liftN;
+    var movedColor = colorName(src[src.length - 1]);
     var liftedEls = els[from].slice(src.length - run);
     var moving = liftedEls.slice(run - n);          // top n of the lifted group
     var staying = liftedEls.slice(0, run - n);
@@ -285,6 +329,8 @@
     els[from].splice(els[from].length - n, n);
     moving.forEach(function (e) { els[to].push(e); });
     S.sel = -1; S.liftN = 0; S.moves++;
+    syncBoltAccessibility();
+    announce('Moved ' + n + ' ' + movedColor + (n === 1 ? ' nut' : ' nuts') + ' from bolt ' + (from + 1) + ' to bolt ' + (to + 1) + '.');
     // any nuts that did not fit go back down
     var back = staying.map(function (e, k) {
       var a = liftXY(from, k), b = slotXY(from, src.length - staying.length + k);
@@ -487,6 +533,13 @@
       var p = G.pos[i];
       if (Math.abs(x - p.cx) <= p.colW / 2 && y >= p.rowTop - G.nh * 3 && y <= p.bottom + 4) { onBoltTap(i); return; }
     }
+  });
+  board.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var t = e.target.closest('.bolt');
+    if (!t) return;
+    e.preventDefault();
+    onBoltTap(+t.dataset.index);
   });
   $('btn-play').addEventListener('click', function () { SFX.unlock(); SFX.click(); showGame(); });
   $('btn-home').addEventListener('click', function () { SFX.click(); if (S.sel >= 0 && !S.busy) { S.sel = -1; S.liftN = 0; layout(); } showHome(); });

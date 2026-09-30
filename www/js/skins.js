@@ -23,16 +23,16 @@ window.SKINS = {
 };
 /* Nut colors: industrial anodized palette + a mark for the color-blind aid. */
 window.NUT_COLORS = [
-  { c: '#d8453f', m: '●' }, // red
-  { c: '#e0892b', m: '▲' }, // orange
-  { c: '#e9c32e', m: '■' }, // yellow
-  { c: '#6fb23c', m: '◆' }, // lime
-  { c: '#169a7c', m: '★' }, // teal-green
-  { c: '#1fa9c4', m: '✚' }, // cyan
-  { c: '#2f64d0', m: '⬟' }, // blue
-  { c: '#7b52c7', m: '▼' }, // violet
-  { c: '#d24791', m: '♥' }, // magenta
-  { c: '#9a6232', m: '◐' }, // bronze
-  { c: '#d5dbe0', m: '✕' }, // silver
-  { c: '#5d6b7a', m: '○' }  // gunmetal
+  { c: '#d8453f', m: '●', name: 'red' }, // red
+  { c: '#e0892b', m: '▲', name: 'orange' }, // orange
+  { c: '#e9c32e', m: '■', name: 'yellow' }, // yellow
+  { c: '#6fb23c', m: '◆', name: 'lime' }, // lime
+  { c: '#169a7c', m: '★', name: 'teal-green' }, // teal-green
+  { c: '#1fa9c4', m: '✚', name: 'cyan' }, // cyan
+  { c: '#2f64d0', m: '⬟', name: 'blue' }, // blue
+  { c: '#7b52c7', m: '▼', name: 'violet' }, // violet
+  { c: '#d24791', m: '♥', name: 'magenta' }, // magenta
+  { c: '#9a6232', m: '◐', name: 'bronze' }, // bronze
+  { c: '#d5dbe0', m: '✕', name: 'silver' }, // silver
+  { c: '#5d6b7a', m: '○', name: 'gunmetal' } // gunmetal
 ];

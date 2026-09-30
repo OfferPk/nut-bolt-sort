@@ -52,12 +52,23 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(s.level === 1, 'starts at level 1');
   await page.screenshot({ path: `${OUT}/nbs-level1.png` });
 
+  // --- keyboard and screen-reader bolt controls ---
+  const keyboardBolt = await page.$eval('.bolt[aria-label*="nuts bottom to top"]', e => e.dataset.index);
+  const keyboardSelector = `.bolt[data-index="${keyboardBolt}"]`;
+  assert(await page.$eval(keyboardSelector, e => e.getAttribute('role') === 'button' && e.tabIndex === 0 && e.getAttribute('aria-label').includes('top ')), 'bolts expose descriptive focusable button labels');
+  await page.focus(keyboardSelector);
+  await page.keyboard.press('Enter'); await idle();
+  assert(await page.$eval(keyboardSelector, e => e.getAttribute('aria-pressed') === 'true' && e.getAttribute('aria-label').includes('selected')) && await page.$eval('#game-status', e => e.textContent.includes('selected')), 'Enter selects a bolt and announces its selected state');
+  await page.keyboard.press('Space'); await idle();
+  assert(await page.$eval(keyboardSelector, e => e.getAttribute('aria-pressed') === 'false') && await page.$eval('#game-status', e => e.textContent.includes('cancelled')), 'Space cancels a bolt selection');
+
   // --- undo: make one legal move, then undo ---
   const first = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap)[0]; });
   const before = s.key;
-  await tap(first[0]); await idle(); await tap(first[1]); await idle();
+  await page.focus(`.bolt[data-index="${first[0]}"]`); await page.keyboard.press('Enter'); await idle();
+  await page.focus(`.bolt[data-index="${first[1]}"]`); await page.keyboard.press('Space'); await idle();
   s = await st();
-  assert(s.moves === 1 && s.key !== before, 'a tap-tap move changed the board');
+  assert(s.moves === 1 && s.key !== before && await page.$eval('#game-status', e => e.textContent.includes('Moved')), 'a keyboard move changed the board and was announced');
   await page.tap('#btn-undo'); await sleep(200);
   s = await st();
   assert(s.moves === 0 && s.key === before, 'undo restored the exact previous board');
