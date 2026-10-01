@@ -128,12 +128,15 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.$eval(keyboardSelector, e => e.getAttribute('aria-pressed') === 'false') && await page.$eval('#game-status', e => e.textContent.includes('cancelled')), 'Space cancels a bolt selection');
   await page.focus(keyboardSelector);
   await page.keyboard.press('Enter'); await idle();
+  const escapeTarget = await page.$eval(`.bolt:not([data-index="${keyboardBolt}"])`, e => e.dataset.index);
+  await page.focus(`.bolt[data-index="${escapeTarget}"]`);
   const beforeEscape = await st();
   await page.keyboard.press('Escape'); await idle();
   const afterEscape = await st();
   assert(afterEscape.sel === -1 && afterEscape.liftN === 0 && afterEscape.moves === beforeEscape.moves && afterEscape.key === beforeEscape.key, 'Escape returns selected nuts without changing the board or move count');
   await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('Selection cancelled'));
   assert(await page.$eval('#game-status', e => e.textContent.includes('Selection cancelled')), 'Escape announces that the selection was cancelled');
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), keyboardBolt), 'Escape cancellation restores focus to the bolt where the nuts were returned');
 
   // --- undo: make one legal move, then undo ---
   const first = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap)[0]; });
