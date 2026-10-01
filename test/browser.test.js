@@ -13,6 +13,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   const page = await browser.newPage();
   await page.emulate({ viewport: { width: 360, height: 640, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129 Mobile Safari/537.36' });
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -67,6 +68,27 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.$eval('#game', e => !e.classList.contains('hidden')), 'game screen opens from Play');
   let s = await st();
   assert(s.level === 1, 'starts at level 1');
+  assert(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches), 'browser exposes the OS reduced-motion preference');
+  const reducedMotionStyles = await page.evaluate(() => {
+    const bolt = document.querySelector('.bolt');
+    bolt.classList.add('hint');
+    const styles = {
+      hint: getComputedStyle(bolt.querySelector('.head')).animationName,
+      cap: getComputedStyle(bolt.querySelector('.cap')).transitionProperty,
+      panel: getComputedStyle(document.querySelector('#settings .panel')).animationName
+    };
+    bolt.classList.remove('hint');
+    return styles;
+  });
+  assert(reducedMotionStyles.hint === 'none' && reducedMotionStyles.cap === 'none' && reducedMotionStyles.panel === 'none', 'reduced motion disables hint, cap, and panel CSS effects');
+  await page.evaluate(() => {
+    window.__nbs.reducedMotionAnimationCalls = 0;
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function () {
+      window.__nbs.reducedMotionAnimationCalls++;
+      return animate.apply(this, arguments);
+    };
+  });
   await page.screenshot({ path: `${OUT}/nbs-level1.png` });
 
   // --- keyboard and screen-reader bolt controls ---
@@ -75,8 +97,11 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.$eval(keyboardSelector, e => e.getAttribute('role') === 'button' && e.tabIndex === 0 && e.getAttribute('aria-label').includes('top ')), 'bolts expose descriptive focusable button labels');
   await page.focus(keyboardSelector);
   await page.keyboard.press('Enter'); await idle();
+  await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('selected'));
   assert(await page.$eval(keyboardSelector, e => e.getAttribute('aria-pressed') === 'true' && e.getAttribute('aria-label').includes('selected')) && await page.$eval('#game-status', e => e.textContent.includes('selected')), 'Enter selects a bolt and announces its selected state');
+  assert(await page.evaluate(() => window.__nbs.reducedMotionAnimationCalls === 0), 'reduced motion skips JavaScript nut animations');
   await page.keyboard.press('Space'); await idle();
+  await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('cancelled'));
   assert(await page.$eval(keyboardSelector, e => e.getAttribute('aria-pressed') === 'false') && await page.$eval('#game-status', e => e.textContent.includes('cancelled')), 'Space cancels a bolt selection');
   await page.focus(keyboardSelector);
   await page.keyboard.press('Enter'); await idle();
@@ -84,6 +109,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.keyboard.press('Escape'); await idle();
   const afterEscape = await st();
   assert(afterEscape.sel === -1 && afterEscape.liftN === 0 && afterEscape.moves === beforeEscape.moves && afterEscape.key === beforeEscape.key, 'Escape returns selected nuts without changing the board or move count');
+  await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('Selection cancelled'));
   assert(await page.$eval('#game-status', e => e.textContent.includes('Selection cancelled')), 'Escape announces that the selection was cancelled');
 
   // --- undo: make one legal move, then undo ---
@@ -92,10 +118,13 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.focus(`.bolt[data-index="${first[0]}"]`); await page.keyboard.press('Enter'); await idle();
   await page.focus(`.bolt[data-index="${first[1]}"]`); await page.keyboard.press('Space'); await idle();
   s = await st();
+  await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('Moved'));
   assert(s.moves === 1 && s.key !== before && await page.$eval('#game-status', e => e.textContent.includes('Moved')), 'a keyboard move changed the board and was announced');
+  assert(await page.evaluate(() => window.__nbs.reducedMotionAnimationCalls === 0), 'a legal move still applies without starting JavaScript animations');
   await page.tap('#btn-undo'); await sleep(200);
   s = await st();
   assert(s.moves === 0 && s.key === before, 'undo restored the exact previous board');
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
   assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), first[0]), 'undo restores focus to the move source bolt');
   assert(await page.$eval('#game-status', e => e.textContent.trim() === 'Move undone. 0 moves made.'), 'undo replaces the stale move announcement with the accurate restored move count');
 

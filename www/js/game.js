@@ -74,7 +74,15 @@
     cl.toggle('marks', !!save.settings.marks);
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
   function anim(el, frames, opts) {
+    if (prefersReducedMotion()) {
+      var last = frames[frames.length - 1];
+      if (last.transform) el.style.transform = last.transform;
+      return Promise.resolve();
+    }
     var a = el.animate(frames, Object.assign({ fill: 'forwards' }, opts));
     return a.finished.then(function () {
       var last = frames[frames.length - 1];
@@ -293,7 +301,7 @@
   }
   function shake(i) {
     var be = boltEls[i]; if (!be) return;
-    be.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: 260 });
+    if (!prefersReducedMotion()) be.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: 260 });
     SFX.error(); haptic('error');
   }
 
@@ -352,7 +360,7 @@
           { duration: 230 + (n - k) * 30, easing: 'cubic-bezier(.5,0,.8,1)' });
       }).then(function () { e.classList.remove('spin', 'lifted'); e.style.removeProperty('--spin-dur'); });
     });
-    setTimeout(function () { SFX.screw(n); haptic('light'); }, 280);
+    setTimeout(function () { SFX.screw(n); haptic('light'); }, prefersReducedMotion() ? 0 : 280);
     await Promise.all(back.concat(flights));
     var doneNow = L.isComplete(S.bolts[to], S.cap);
     boltEls[to].classList.toggle('done', doneNow);
@@ -366,6 +374,7 @@
   }
 
   function sparks(b, count) {
+    if (prefersReducedMotion()) return;
     var p = G.pos[b], fx = $('fx'), br = board.getBoundingClientRect(), ar = $('app').getBoundingClientRect();
     var x0 = br.left - ar.left + p.cx, y0 = br.top - ar.top + p.headTop - S.cap * G.nh;
     for (var i = 0; i < count; i++) {
@@ -446,7 +455,7 @@
     setCoins();
     SFX.win(); haptic('success');
     for (var b = 0; b < S.bolts.length; b++) if (S.bolts[b].length) sparks(b, 8);
-    await wait(650);
+    await wait(prefersReducedMotion() ? 0 : 650);
     if (sequence !== winSequence || !S.won || !L.isSolved(S.bolts, S.cap)) return;
     $('win-level').textContent = S.level;
     $('win-moves').textContent = S.moves;
