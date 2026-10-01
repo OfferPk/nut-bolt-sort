@@ -599,8 +599,12 @@
     if (e.key === 'Escape') {
       if (S.sel < 0 || S.busy || S.won) return;
       e.preventDefault();
+      var source = S.sel;
       S.busy = true;
-      dropSelection().then(function () { S.busy = false; });
+      dropSelection().then(function () {
+        S.busy = false;
+        if (boltEls[source]) boltEls[source].focus();
+      });
       return;
     }
     if (e.key !== 'Enter' && e.key !== ' ') return;
