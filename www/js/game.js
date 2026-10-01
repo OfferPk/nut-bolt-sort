@@ -607,7 +607,38 @@
       if (Math.abs(x - p.cx) <= p.colW / 2 && y >= p.rowTop - G.nh * 3 && y <= p.bottom + 4) { onBoltTap(i); return; }
     }
   });
+  function focusAdjacentBolt(index, key) {
+    var p = G && G.pos[index];
+    if (!p) return;
+    var horizontal = key === 'ArrowLeft' || key === 'ArrowRight';
+    var direction = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+    var target = -1, bestGap = Infinity, bestX = Infinity;
+    G.pos.forEach(function (pos, i) {
+      if (i === index) return;
+      if (horizontal) {
+        if (Math.abs(pos.rowTop - p.rowTop) > 0.5) return;
+        var dx = pos.cx - p.cx;
+        if (dx * direction <= 0 || Math.abs(dx) >= bestGap) return;
+        target = i; bestGap = Math.abs(dx);
+        return;
+      }
+      var dy = pos.rowTop - p.rowTop;
+      if (dy * direction <= 0) return;
+      var gap = Math.abs(dy), xGap = Math.abs(pos.cx - p.cx);
+      if (gap < bestGap || (gap === bestGap && xGap < bestX)) {
+        target = i; bestGap = gap; bestX = xGap;
+      }
+    });
+    if (target >= 0 && boltEls[target]) boltEls[target].focus();
+  }
   board.addEventListener('keydown', function (e) {
+    if (/^Arrow(?:Left|Right|Up|Down)$/.test(e.key)) {
+      var focusedBolt = e.target.closest('.bolt');
+      if (!focusedBolt) return;
+      e.preventDefault();
+      focusAdjacentBolt(+focusedBolt.dataset.index, e.key);
+      return;
+    }
     if (e.key === 'Escape') {
       if (S.sel < 0 || S.busy || S.won) return;
       e.preventDefault();

@@ -95,6 +95,29 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   const keyboardBolt = await page.$eval('.bolt[aria-label*="nuts bottom to top"]', e => e.dataset.index);
   const keyboardSelector = `.bolt[data-index="${keyboardBolt}"]`;
   assert(await page.$eval(keyboardSelector, e => e.getAttribute('role') === 'button' && e.tabIndex === 0 && e.getAttribute('aria-label').includes('top ')), 'bolts expose descriptive focusable button labels');
+  assert(await page.$eval('#game-instructions', e => e.textContent.includes('arrow keys')), 'game instructions describe arrow-key bolt navigation');
+  const arrowNavigation = await page.evaluate(() => {
+    const bolts = [...document.querySelectorAll('.bolt')];
+    for (let i = 0; i < bolts.length; i++) {
+      const source = bolts[i].getBoundingClientRect();
+      for (const [key, sign] of [['ArrowRight', 1], ['ArrowLeft', -1]]) {
+        const candidates = bolts.map((bolt, index) => ({ bolt, index, rect: bolt.getBoundingClientRect() }))
+          .filter(x => Math.abs(x.rect.top - source.top) < 1 && (x.rect.left - source.left) * sign > 1)
+          .sort((a, b) => Math.abs(a.rect.left - source.left) - Math.abs(b.rect.left - source.left));
+        if (candidates.length) return { from: i, to: candidates[0].index, key };
+      }
+    }
+    return null;
+  });
+  assert(arrowNavigation, 'board has adjacent bolts for arrow-key navigation');
+  const beforeArrowNavigation = await st();
+  await page.focus(`.bolt[data-index="${arrowNavigation.from}"]`);
+  await page.keyboard.press(arrowNavigation.key);
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), arrowNavigation.to), 'arrow key moves focus to the adjacent bolt');
+  const afterArrowNavigation = await st();
+  assert(afterArrowNavigation.key === beforeArrowNavigation.key && afterArrowNavigation.moves === beforeArrowNavigation.moves && afterArrowNavigation.sel === beforeArrowNavigation.sel, 'bolt navigation does not change the board, move count, or selection');
+  await page.keyboard.press(arrowNavigation.key === 'ArrowRight' ? 'ArrowLeft' : 'ArrowRight');
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), arrowNavigation.from), 'opposite arrow returns focus to the source bolt');
   await page.focus(keyboardSelector);
   await page.keyboard.press('Enter'); await idle();
   await page.waitForFunction(() => document.querySelector('#game-status').textContent.includes('selected'));
@@ -249,6 +272,27 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.tap('#btn-next'); await sleep(500);
   s = await st();
   assert(s.level === 2 && !s.won, 'Next goes to level 2');
+  const verticalNavigation = await page.evaluate(() => {
+    const bolts = [...document.querySelectorAll('.bolt')];
+    for (let i = 0; i < bolts.length; i++) {
+      const source = bolts[i].getBoundingClientRect();
+      for (const [key, sign] of [['ArrowDown', 1], ['ArrowUp', -1]]) {
+        const candidates = bolts.map((bolt, index) => ({ index, rect: bolt.getBoundingClientRect() }))
+          .filter(x => (x.rect.top - source.top) * sign > 1)
+          .sort((a, b) => Math.abs(a.rect.top - source.top) - Math.abs(b.rect.top - source.top) || Math.abs(a.rect.left - source.left) - Math.abs(b.rect.left - source.left));
+        if (candidates.length) return { from: i, to: candidates[0].index, key };
+      }
+    }
+    return null;
+  });
+  assert(verticalNavigation, 'multi-row level has adjacent bolts for vertical arrow navigation');
+  const beforeVerticalNavigation = await st();
+  await page.focus(`.bolt[data-index="${verticalNavigation.from}"]`);
+  await page.keyboard.press(verticalNavigation.key);
+  assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), verticalNavigation.to), 'vertical arrow key moves focus to the nearest bolt in the next row');
+  const afterVerticalNavigation = await st();
+  assert(afterVerticalNavigation.key === beforeVerticalNavigation.key && afterVerticalNavigation.moves === beforeVerticalNavigation.moves && afterVerticalNavigation.sel === beforeVerticalNavigation.sel, 'vertical bolt navigation leaves puzzle state unchanged');
+  await page.focus(`.bolt[data-index="${lastMove[1]}"]`);
   assert(await page.evaluate(i => {
     const f = window.__nbs.nextFocusAtDismissal;
     return f && f.same && f.connected && Number(f.boltIndex) === i;
