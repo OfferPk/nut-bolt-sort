@@ -1,5 +1,5 @@
 // Headless Chrome play test at phone size. Plays by tapping bolts like a user and checks:
-// win detection/dialog keyboard behavior, next level, undo, +1 bolt, hint, reload persistence, reset preferences, no console errors.
+// win detection/dialog keyboard behavior, per-level move records, next level, undo, +1 bolt, hint, reload persistence, reset preferences, no console errors.
 // Usage: node test/browser.test.js <url> [outdir]
 //   needs puppeteer-core (npm i --no-save puppeteer-core) and Chrome (CHROME=/path, default /usr/bin/google-chrome)
 const puppeteer = require(process.env.PUPPETEER || 'puppeteer-core');
@@ -59,7 +59,11 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
 
   console.log('Testing', URL);
   await page.goto(URL, { waitUntil: 'networkidle0' });
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.__nbs.save.bestMoves = { 1: 99 };
+    localStorage.setItem('nutboltsort.save.v1', JSON.stringify(window.__nbs.save));
+  });
   await page.reload({ waitUntil: 'networkidle0' });
   await sleep(300);
   await page.screenshot({ path: `${OUT}/nbs-home.png` });
@@ -68,6 +72,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.$eval('#game', e => !e.classList.contains('hidden')), 'game screen opens from Play');
   let s = await st();
   assert(s.level === 1, 'starts at level 1');
+  assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 99), 'synthetic save loads an existing per-level personal best');
   assert(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches), 'browser exposes the OS reduced-motion preference');
   const reducedMotionStyles = await page.evaluate(() => {
     const bolt = document.querySelector('.bolt');
@@ -228,6 +233,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.evaluate(() => { window.__nbs.testWinOpener = document.activeElement; });
   s = await st();
   assert(s.won && s.moves === 8 && s.hist === 8 && s.coins === 11 && s.completions === 1, 'final move creates the solved 8/8 board, pays exactly +11 and records one completion');
+  assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'a faster clear immediately replaces and persists the previous move record');
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'completion has not yet advanced to the win panel');
   await page.focus('#btn-undo');
   await page.keyboard.press('Enter');
@@ -238,6 +244,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), lastMove[0]), 'final-move Undo focuses the move source bolt');
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'Undo cancels the pending win panel');
   assert(s.coins === 11 && s.completions === 1 && await page.evaluate(() => window.__nbs.save.level === 1), 'Undo preserves the already-earned reward/completion and keeps the current level');
+  assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'undoing the final move does not erase the completed personal-best record');
   assert(await page.evaluate(() => window.__nbs.nextCalls === 0), 'Undo does not call the Next-level transition');
   await sleep(750);
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'cancelled win UI does not reappear after its original delay');
@@ -247,6 +254,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   s = await st();
   const winShown = await page.$eval('#win', e => !e.classList.contains('hidden'));
   assert(s.won && winShown, `level 1 won by taps again (${n1} moves) and win panel shown`);
+  assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8 && document.getElementById('win-best').textContent === '8' && document.getElementById('win-record-note').classList.contains('hidden')), 'an equal replay keeps the record without announcing another personal best');
   assert(s.coins === 11 && s.completions === 1 && await page.$eval('#win-coins', e => e.textContent === '+0'), 're-solving the completed level neither pays nor records completion twice');
   const winDialog = await page.$eval('#win-dialog', e => ({
     role: e.getAttribute('role'), modal: e.getAttribute('aria-modal'),
@@ -313,12 +321,15 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.tap('#btn-play'); await sleep(400);
   s = await st();
   assert(s.level === 2 && s.moves === 1 && s.key === keyBefore, 'after reload the in-progress board, move count and level are restored');
+  assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'per-level move records persist across reload with the active board');
   const coins2 = await page.evaluate(() => window.__nbs.save.coins);
   assert(coins2 === coins, 'coins persisted across reload');
 
   // finish level 2 and move on to level 3
   await solveCurrent(); await sleep(900);
+  const level2Moves = (await st()).moves;
   assert((await st()).won, 'level 2 won');
+  assert(await page.evaluate(moves => window.__nbs.save.bestMoves['2'] === moves && !document.getElementById('win-record-note').classList.contains('hidden'), level2Moves), 'a first-ever clear records and announces a personal best for a new level');
   await page.tap('#btn-next'); await sleep(400);
   assert((await st()).level === 3, 'advanced to level 3');
 
@@ -336,9 +347,11 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
     };
     localStorage.setItem('nutboltsort.save.v1', JSON.stringify(fixture));
     Object.assign(window.__nbs.save, fixture);
+    delete window.__nbs.save.bestMoves;
   });
   await page.goto(URL, { waitUntil: 'networkidle0' });
   await page.tap('#btn-settings-home');
+  assert(await page.evaluate(() => JSON.stringify(window.__nbs.save.bestMoves) === '{}'), 'legacy saves without move records load with an empty record map');
   assert(await page.$eval('#set-sound', e => !e.checked) && await page.$eval('#set-haptics', e => !e.checked) && await page.$eval('#set-marks', e => e.checked), 'synthetic fixture loads its saved sound, haptics, and marks preferences');
   const resetConfirm = new Promise(resolve => page.once('dialog', resolve));
   const resetClick = page.tap('#btn-reset');
@@ -350,6 +363,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   const resetState = await page.evaluate(() => window.__nbs.save);
   assert(resetState.settings.sound === false && resetState.settings.haptics === false && resetState.settings.marks === true, 'reset preserves sound, haptics, and marks preferences');
   assert(resetState.level === 1 && resetState.coins === 0 && resetState.best === 0 && resetState.current === null, 'reset clears level progress, coins, finishes, and the saved board');
+  assert(JSON.stringify(resetState.bestMoves) === '{}', 'reset clears per-level personal-best records');
   assert(JSON.stringify(resetState.owned) === JSON.stringify({ nut: ['anodized'], bolt: ['steel'], bg: ['graphite'] }), 'reset clears owned cosmetic finishes');
 
   await sleep(300);

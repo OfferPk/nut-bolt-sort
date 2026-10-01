@@ -11,6 +11,7 @@
   function defaults() {
     return {
       level: 1, coins: 0, best: 0,
+      bestMoves: {},
       owned: { nut: ['anodized'], bolt: ['steel'], bg: ['graphite'] },
       skin: { nut: 'anodized', bolt: 'steel', bg: 'graphite' },
       settings: { sound: true, haptics: true, marks: false },
@@ -27,6 +28,13 @@
         d.settings = Object.assign(defaults().settings, s.settings || {});
         d.owned = Object.assign(defaults().owned, s.owned || {});
         d.skin = Object.assign(defaults().skin, s.skin || {});
+        d.bestMoves = {};
+        if (s.bestMoves && typeof s.bestMoves === 'object' && !Array.isArray(s.bestMoves)) {
+          Object.keys(s.bestMoves).forEach(function (level) {
+            var moves = Number(s.bestMoves[level]);
+            if (/^[1-9]\d*$/.test(level) && Number.isSafeInteger(moves) && moves > 0) d.bestMoves[level] = moves;
+          });
+        }
       }
     } catch (e) {}
     return d;
@@ -444,6 +452,9 @@
   async function win() {
     var sequence = ++winSequence;
     S.won = true;
+    var levelKey = String(S.level), oldRecord = save.bestMoves[levelKey];
+    var newRecord = !oldRecord || S.moves < oldRecord;
+    if (newRecord) save.bestMoves[levelKey] = S.moves;
     var firstCompletion = S.level > (save.best || 0);
     var reward = firstCompletion ? coinReward(S.level, S.colors) : 0;
     save.coins += reward;
@@ -459,6 +470,8 @@
     if (sequence !== winSequence || !S.won || !L.isSolved(S.bolts, S.cap)) return;
     $('win-level').textContent = S.level;
     $('win-moves').textContent = S.moves;
+    $('win-best').textContent = save.bestMoves[levelKey];
+    $('win-record-note').classList.toggle('hidden', !newRecord);
     $('win-coins').textContent = '+' + reward;
     openWinPanel();
   }

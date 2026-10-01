@@ -187,10 +187,11 @@ body.web .ad-badge { display: none; }
 .win-kicker { color: var(--muted); letter-spacing: .3em; font-weight: 800; font-size: 13px; }
 .win-panel h2 { margin: 4px 0 14px; font-size: 38px; letter-spacing: .14em; font-weight: 900;
   background: linear-gradient(180deg, #fff 0%, #c9d1da 48%, #7d8894 52%, #e5eaf0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.win-stats { display: flex; justify-content: center; gap: 14px; margin-bottom: 18px; }
-.win-stats div { flex: 1; padding: 10px; border-radius: 12px; background: rgba(0,0,0,.3); border: 1px solid var(--line); display: flex; flex-direction: column; }
+.win-stats { display: flex; justify-content: center; gap: 8px; margin-bottom: 18px; }
+.win-stats div { flex: 1; min-width: 0; padding: 10px 6px; border-radius: 12px; background: rgba(0,0,0,.3); border: 1px solid var(--line); display: flex; flex-direction: column; }
 .win-stats b { font-size: 24px; color: var(--accent); }
 .win-stats span { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.win-record-note { margin: -8px 0 14px; color: var(--accent); font-size: 12px; font-weight: 900; letter-spacing: .08em; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .row input { display: none; }
 .sw { width: 46px; height: 26px; border-radius: 13px; background: #11141a; border: 1px solid rgba(255,255,255,.12); position: relative; flex: none; transition: background .2s; }
