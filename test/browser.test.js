@@ -135,13 +135,41 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(s.bolts === nb + 1 && s.extra, '+1 bolt added an empty bolt');
   assert(await page.$eval('#btn-extra', e => e.disabled), '+1 bolt disabled after use (once per level)');
 
+  const moveBeforeRestart = await page.evaluate(() => { const s = window.__nbs.state; return window.__nbs.logic.solve(s.bolts, s.cap)[0]; });
+  await tap(moveBeforeRestart[0]); await idle(); await tap(moveBeforeRestart[1]); await idle();
+  s = await st();
+  assert(s.moves === 1 && s.hist === 1 && s.extra, 'restart regression begins with a saved move, undo history, and spare bolt in use');
+
   // --- hint ---
   await page.tap('#btn-hint'); await sleep(500);
   assert(await page.$$eval('.bolt.hint', e => e.length) >= 1, 'hint highlights a bolt');
   const hintMove = await page.evaluate(() => window.__nbs.state.lastHint);
   assert(Array.isArray(hintMove), 'hint produced a solver move ' + JSON.stringify(hintMove));
 
-  await page.tap('#btn-restart'); await sleep(200);
+  const restartSnapshot = () => page.evaluate(() => {
+    const s = window.__nbs.state;
+    return {
+      level: s.level, bolts: s.bolts.map(b => b.slice()), moves: s.moves,
+      history: s.history.map(h => ({ bolts: h.bolts.map(b => b.slice()), moves: h.moves, from: h.from })),
+      extraUsed: s.extraUsed, coins: window.__nbs.save.coins,
+      stored: localStorage.getItem('nutboltsort.save.v1')
+    };
+  });
+  const restartBefore = await restartSnapshot();
+  const restartPrompt = new Promise(resolve => page.once('dialog', resolve));
+  const cancelRestartClick = page.tap('#btn-restart');
+  const restartDialog = await restartPrompt;
+  assert(restartDialog.message() === 'Restart this level? Your current board and undo history will be lost.', 'restart explains which in-progress state would be discarded');
+  await restartDialog.dismiss();
+  await cancelRestartClick;
+  assert(JSON.stringify(await restartSnapshot()) === JSON.stringify(restartBefore), 'cancelling restart preserves the board, undo history, bonus use, coins, and saved data');
+
+  const confirmRestartPrompt = new Promise(resolve => page.once('dialog', resolve));
+  const confirmRestartClick = page.tap('#btn-restart');
+  const confirmRestartDialog = await confirmRestartPrompt;
+  await confirmRestartDialog.accept();
+  await confirmRestartClick;
+  await sleep(200);
   s = await st();
   assert(s.moves === 0 && s.hist === 0 && !s.extra, 'restart restores the untouched Level 1 board for the completion regression');
   await page.waitForFunction(() => document.querySelector('#toast').classList.contains('hidden'), { timeout: 5000 });

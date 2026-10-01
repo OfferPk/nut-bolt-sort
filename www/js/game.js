@@ -491,11 +491,14 @@
     announce('Move undone. ' + S.moves + (S.moves === 1 ? ' move' : ' moves') + ' made.');
   }
   function restart() {
-    if (S.busy || S.won) return;
+    if (S.busy || S.won) return false;
+    if ((S.moves > 0 || S.history.length || S.extraUsed) &&
+        !window.confirm('Restart this level? Your current board and undo history will be lost.')) return false;
     SFX.click(); clearHint();
     S.bolts = clone(S.start); S.history = []; S.moves = 0; S.extraUsed = false; S.sel = -1; S.liftN = 0;
     $('stuck').classList.add('hidden');
     render(); updateButtons(); saveCurrent();
+    return true;
   }
   function addBolt() {
     S.bolts.push([]); S.extraUsed = true; S.sel = -1; S.liftN = 0;
@@ -626,7 +629,7 @@
   $('btn-extra').addEventListener('click', extraBolt);
   $('btn-next').addEventListener('click', nextLevel);
   $('stuck-undo').addEventListener('click', function () { $('stuck').classList.add('hidden'); undo(); });
-  $('stuck-restart').addEventListener('click', function () { $('stuck').classList.add('hidden'); restart(); });
+  $('stuck-restart').addEventListener('click', function () { restart(); });
   $('stuck-extra').addEventListener('click', function () { $('stuck').classList.add('hidden'); extraBolt(); });
   $('btn-shop').addEventListener('click', function () { SFX.unlock(); SFX.click(); renderShop(); $('shop').classList.remove('hidden'); });
   $('btn-settings-home').addEventListener('click', function () { SFX.unlock(); SFX.click(); syncSettingsUI(); $('settings').classList.remove('hidden'); });
