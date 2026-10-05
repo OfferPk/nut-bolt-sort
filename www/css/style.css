@@ -234,3 +234,38 @@ body.web .ad-badge { display: none; }
     scroll-behavior: auto !important;
   }
 }
+
+
+/* How to play: same outer size as the primary home menu card, neon border */
+.menu-col { width: min(280px, 100%); display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.menu-col > .btn.big, .menu-col > .howto-open { width: 100%; min-width: 0; }
+.menu-col .home-row { width: 100%; }
+.menu-col .home-row .btn { flex: 1; }
+.howto-open {
+  width: 100%;
+  height: var(--menu-h, auto);
+  box-sizing: border-box;
+  border: 2px solid #7efbff !important;
+  box-shadow: 0 0 6px #39f6ff, 0 0 16px #2a7dff, inset 0 0 8px rgba(120,240,255,.35);
+}
+.howto-card {
+  width: var(--menu-w, 280px);
+  height: var(--menu-h, 76px);
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px 6px 6px;
+  border-radius: 12px;
+  overflow: auto;
+  position: relative;
+  border: 2px solid #7efbff;
+  box-shadow: 0 0 8px #39f6ff, 0 0 18px #2a7dff, 0 0 32px rgba(60,160,255,.55), inset 0 0 12px rgba(130,245,255,.3);
+}
+.howto-x { position: sticky; top: 0; float: right; width: 22px; height: 22px; margin: 0 0 2px 4px; border-radius: 6px; font-size: 14px; line-height: 22px; z-index: 1; }
+.rules { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.25; }
+.rules th, .rules td { text-align: left; padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,.16); vertical-align: top; }
+.rules th { font-size: 10px; letter-spacing: .04em; }
+.rules td:first-child, .rules th:first-child { font-weight: 800; white-space: nowrap; width: 4.6em; }
+
+.howto-card { background: linear-gradient(180deg, #2a3038, #1b1f25); color: var(--txt); }
+.rules th { color: #b7ecff; }
+.howto-x { color: #e8ecf1; background: #111418; }

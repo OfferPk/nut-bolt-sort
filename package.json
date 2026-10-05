@@ -1,6 +1,6 @@
 {
   "name": "nut-bolt-sort",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline Nut & Bolt Sort puzzle (vanilla JS) with a Capacitor Android build and AdMob.",
   "private": true,
   "license": "MIT",

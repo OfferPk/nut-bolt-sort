@@ -26,10 +26,13 @@
         <h1>NUT &amp; BOLT<span>SORT</span></h1>
         <p class="tag">Unscrew. Sort. Tighten.</p>
       </div>
+      <div class="menu-col">
       <button id="btn-play" class="btn primary big"><span>PLAY</span><small id="play-level">Level 1</small></button>
       <div class="home-row">
         <button id="btn-shop" class="btn plate">🛠 Workshop</button>
         <button id="btn-settings-home" class="btn plate">⚙ Settings</button>
+      </div>
+      <button id="btn-howto" class="btn plate big howto-open" type="button"><span>How to play</span><small>Rules</small></button>
       </div>
       <a class="home-link" href="privacy.html">Privacy policy</a>
     </section>
@@ -123,11 +126,27 @@
           <button id="btn-privacy-options" class="btn plate hidden">Ad privacy options</button>
           <button id="btn-reset" class="btn plate danger">Reset progress</button>
         </div>
-        <p class="ver">Nut &amp; Bolt Sort v1.0.0 · © OfferPk</p>
+        <p class="ver">Nut &amp; Bolt Sort v1.0.1 · © OfferPk</p>
       </div>
     </div>
 
-    <div id="toast" class="toast hidden"></div>
+        <div id="howto" class="overlay hidden">
+      <div class="howto-card" role="dialog" aria-modal="true" aria-label="How to play">
+        <button class="howto-x" type="button" data-close="howto" aria-label="Close">✕</button>
+        <table class="rules">
+          <thead><tr><th>Rule</th><th>Kaise</th></tr></thead>
+          <tbody>
+            <tr><td>Goal</td><td>Har rang apne bolt par</td></tr>
+            <tr><td>Move</td><td>Upar ka same rang uthao. Same rang ya khali bolt par, jitne fit hon</td></tr>
+            <tr><td>Win</td><td>Har bolt ek rang se full ho, ya khali</td></tr>
+            <tr><td>Fail</td><td>Useful move khatam. Level fail nahi: undo, spare bolt, ya restart</td></tr>
+            <tr><td>Booster</td><td>Hint agla move chamkata hai. +1 Bolt ek khali bolt, ek dafa</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+<div id="toast" class="toast hidden"></div>
     <div id="fx" aria-hidden="true"></div>
   </div>
 

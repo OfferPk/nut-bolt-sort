@@ -216,3 +216,5 @@ Then I will:
 | Day ~5–21 | 14 continuous days with 12+ testers. Upload v1.0.1 to the closed track. |
 | Day ~21 | Apply for production |
 | Day ~28 | Production approved. Release v1.0.1. Link AdMob to Play. Add app-ads.txt. |
+
+v1.0.1: Home screen par How to play table (Rule | Kaise) add kiya. Rules wahi hain jo game pehle se khelti hai.
