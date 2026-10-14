@@ -15,7 +15,7 @@ cat.groups.forEach(g => {
   assert.ok(g.items.some(it => it.price === 0), g.name + ' has a free default');
   if (g.theme) themeCount += g.items.length;
 });
-assert.ok(themeCount >= 6 && themeCount <= 8 || cat.multi, 'themes 6-8 (got ' + themeCount + ')');
+assert.ok(themeCount >= 10 && themeCount <= 14 || cat.multi, 'themes 10-14 (v1.6 added 4) (got ' + themeCount + ')');
 assert.ok(S.BACKGROUNDS.length >= 2);
 // trial
 const now = 1_800_000_000_000, save = { coins: 100, theme: 'a', trial: {} };

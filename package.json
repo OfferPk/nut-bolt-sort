@@ -1,12 +1,12 @@
 {
   "name": "nut-bolt-sort",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Offline Nut & Bolt Sort puzzle (vanilla JS) with a Capacitor Android build and AdMob.",
   "private": true,
   "license": "MIT",
   "scripts": {
     "serve": "npx --yes http-server www -p 8080 -c-1",
-    "test": "node test/logic.test.js && node test/adgate.test.js && node test/daily.test.js && node test/shop.test.js && node test/achievements.test.js && node test/coach.test.js && node test/v15.test.js",
+    "test": "node test/logic.test.js && node test/adgate.test.js && node test/daily.test.js && node test/shop.test.js && node test/achievements.test.js && node test/coach.test.js && node test/v15.test.js && node test/v16.test.js",
     "sync": "npx cap sync android"
   },
   "dependencies": {

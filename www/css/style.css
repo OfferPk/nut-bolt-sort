@@ -358,3 +358,28 @@ body.bg-prism, .bg-swatch.bg-prism { background: conic-gradient(from 210deg at 5
 .coach-tip.compact { padding: 7px 10px; font-size: 13px; line-height: 1.25; }
 .coach-tip.compact p { margin: 0 0 5px; }
 .coach-tip.compact .coach-row button { padding: 4px 10px; font-size: 13px; }
+
+/* v1.6 skins */
+.bg-greenhouse { background:
+  linear-gradient(rgba(180,255,200,.06) 2px, transparent 2px) 0 0/48px 64px,
+  linear-gradient(90deg, rgba(180,255,200,.06) 2px, transparent 2px) 0 0/48px 64px,
+  radial-gradient(120% 80% at 50% 0%, #22432c 0%, #12261a 55%, #08140d 100%); }
+.bg-arctic { background:
+  radial-gradient(90% 50% at 50% 0%, rgba(160,220,255,.22) 0%, transparent 70%),
+  linear-gradient(180deg, #1c2e40 0%, #122030 55%, #0a131d 100%); }
+.bolt-bronze   { --rod:#8a7350; --rod-hi:#e0cfa8; --rod-lo:#3a2e1c; --head:#6e5a3c; }
+.nut-frost     { --n-edge:.6;  --n-hi:.7;  --n-face:.5;  --n-lo:.2;  --n-glow:0; }
+/* Weekly challenge (v1.6) */
+.weekly { margin-top: 4px; }
+.weekly-left { text-transform: none; letter-spacing: 0; font-weight: 600; opacity: .75; }
+.weekly-goals { display: flex; flex-direction: column; gap: 6px; }
+.weekly-goal { padding: 7px 10px; border-radius: 10px; background: rgba(127,127,127,.12); }
+.weekly-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.weekly-n { white-space: nowrap; }
+.weekly-bar { height: 5px; border-radius: 3px; background: rgba(127,127,127,.25); margin-top: 5px; overflow: hidden; }
+.weekly-bar i { display: block; height: 100%; background: #f2b84b; border-radius: 3px; }
+.weekly-goal.done .weekly-bar i { background: #3fcf8e; }
+.weekly-goal.done { opacity: .75; }
+.weekly-foot { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 8px; opacity: .85; }
+.weekly-crest { font-size: 18px; }
+.daily-panel { max-height: calc(100% - 24px); overflow-y: auto; }

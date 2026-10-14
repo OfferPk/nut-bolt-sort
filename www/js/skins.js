@@ -7,7 +7,8 @@ window.SKINS = {
     { id: 'chrome', name: 'Chrome Polish', price: 450 },
     { id: 'pearl', name: 'Pearl Coat', price: 550 },
     { id: 'neon', name: 'Neon Edge', price: 800 },
-    { id: 'ember', name: 'Ember Glow', price: 950 }
+    { id: 'ember', name: 'Ember Glow', price: 950 },
+    { id: 'frost', name: 'Frosted Ice', price: 650 }
   ],
   bolt: [
     { id: 'steel', name: 'Machined Steel', price: 0 },
@@ -16,7 +17,8 @@ window.SKINS = {
     { id: 'oxide', name: 'Black Oxide', price: 600 },
     { id: 'rosegold', name: 'Rose Gold', price: 700 },
     { id: 'cobalt', name: 'Cobalt Blue', price: 850 },
-    { id: 'titanium', name: 'Titanium', price: 1000 }
+    { id: 'titanium', name: 'Titanium', price: 1000 },
+    { id: 'bronze', name: 'Gunmetal Bronze', price: 550 }
   ],
   bg: [
     { id: 'graphite', name: 'Graphite', price: 0 },
@@ -25,7 +27,9 @@ window.SKINS = {
     { id: 'plate', name: 'Tread Plate', price: 350 },
     { id: 'midnight', name: 'Midnight Teal', price: 500 },
     { id: 'carbon', name: 'Carbon Fiber', price: 750 },
-    { id: 'sunset', name: 'Sunset Garage', price: 450 }
+    { id: 'sunset', name: 'Sunset Garage', price: 450 },
+    { id: 'greenhouse', name: 'Greenhouse', price: 400 },
+    { id: 'arctic', name: 'Arctic Lab', price: 600 }
   ]
 };
 /* Nut colors: industrial anodized palette + a mark for the color-blind aid. */

@@ -4,6 +4,6 @@ window.CLOUD_CONFIG = {
   PLAY_GAMES_APP_ID: 'REPLACE_WITH_PLAY_GAMES_APP_ID', // numeric "App ID" from Play Console > Play Games Services > Configuration
   PLUGIN_NAME: 'PlayGamesSaves',                        // native bridge name (see SETUP_PLAY_GAMES.md)
   SNAPSHOT_NAME: 'nutboltsort-progress',
-  KEYS: ['nutboltsort.save.v1', 'nutboltsort.daily.v1', 'nutboltsort.ach.v1']             // progress, coins, purchases (save), daily state, achievements
+  KEYS: ['nutboltsort.save.v1', 'nutboltsort.daily.v1', 'nutboltsort.ach.v1', 'nutboltsort.weekly.v1']             // progress, coins, purchases (save), daily state, achievements
 };
 if (typeof module !== 'undefined') module.exports = window.CLOUD_CONFIG;
