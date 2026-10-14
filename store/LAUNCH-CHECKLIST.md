@@ -1,5 +1,7 @@
 # Launch checklist: Nut & Bolt Sort on Google Play (new personal account)
 
+> v1.9+: the authoritative, up-to-date list is **`LAUNCH_CHECKLIST.md`** in the repo root (secrets + Play Store build workflow).
+
 ## Roman Urdu mein khulasa (short summary)
 
 1. **Play Console account banao:** play.google.com/console par "Yourself" (personal) chuno, **$25 ek dafa** fee do, aur apna **ID card / identity verify** karo. Verification mein kuch din lag sakte hain.
