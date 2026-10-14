@@ -392,3 +392,23 @@ body.bg-prism, .bg-swatch.bg-prism { background: conic-gradient(from 210deg at 5
 .crest b { font-size: 13px; } .crest small { font-size: 10px; opacity: .7; }
 .crest-empty { grid-column: 1 / -1; font-size: 13px; opacity: .8; margin: 4px 0; text-align: center; }
 .crest-hist-h { margin-top: 12px; }
+
+/* ---------- Accessibility (v1.8) ---------- */
+html.a11y-reduce *, html.a11y-reduce *::before, html.a11y-reduce *::after {
+  animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+html.a11y-reduce .spark, html.a11y-reduce .shard, html.a11y-reduce .confetti { display: none !important; }
+/* larger text: raise every small label to a readable minimum without blowing up headings */
+html.a11y-large :is(p, small, span, label, em, b, li, a, .note, .toast, .stat-row, .row, .btn, .tab, .ach-tabs button, .daily-day, .weekly-row, .coach-tip):not(#board *):not(#stage *):not(.board *):not(header *):not(.topbar *):not(.hud *) { font-size: max(1em, 15px); }
+html.a11y-large :is(.btn, .row span, .toast, .coach-tip p, .panel p):not(#board *):not(header *):not(.topbar *) { font-size: max(1em, 17px); }
+html.a11y-large .daily-day small, html.a11y-large .daily-day b { font-size: 12px; }
+.a11y-head { margin: 14px 0 4px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+#settings .panel { max-height: calc(100% - 24px); overflow-y: auto; }
+/* high contrast: solid outlines, no faint text, visible focus */
+html.a11y-contrast .panel { outline: 2px solid currentColor; outline-offset: -2px; }
+html.a11y-contrast .btn, html.a11y-contrast .icon-btn, html.a11y-contrast .tab, html.a11y-contrast .ach-tabs button { outline: 2px solid currentColor; outline-offset: -2px; }
+html.a11y-contrast :is(.note, .daily-note, small, .muted) { opacity: 1 !important; }
+html.a11y-contrast :focus-visible { outline: 3px solid #ffd400 !important; outline-offset: 2px; }
+html.a11y-contrast .overlay { background: rgba(0,0,0,.78); }
+html.a11y-contrast { --muted: var(--txt); }
+html.a11y-contrast .nut { outline: 2px solid rgba(0,0,0,.75); outline-offset: -2px; }

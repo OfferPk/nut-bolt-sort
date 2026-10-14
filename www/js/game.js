@@ -93,6 +93,7 @@
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function prefersReducedMotion() {
+    if (window.A11y) return window.A11y.reduced();
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
   function anim(el, frames, opts) {
@@ -652,7 +653,7 @@
   // ---------------- settings ----------------
   function syncSettingsUI() {
     $('set-sound').checked = !!save.settings.sound;
-    $('set-haptics').checked = !!save.settings.haptics;
+    $('set-haptics').checked = !!save.settings.haptics; if (window.A11y) window.A11y.sync(save.settings, { reduceMotion: 'set-motion', largeText: 'set-large', contrast: 'set-contrast' });
     $('set-marks').checked = !!save.settings.marks;
     $('btn-privacy-options').classList.toggle('hidden', !(native && window.Ads.privacyOptionsRequired()));
   }
@@ -750,6 +751,9 @@
   });
   $('set-sound').addEventListener('change', function (e) { save.settings.sound = e.target.checked; SFX.setEnabled(save.settings.sound); persist(); SFX.click(); });
   $('set-haptics').addEventListener('change', function (e) { save.settings.haptics = e.target.checked; persist(); haptic('light'); });
+  // v1.8 accessibility
+  var A11Y_IDS = { reduceMotion: 'set-motion', largeText: 'set-large', contrast: 'set-contrast' };
+  if (window.A11y) window.A11y.bind(save.settings, persist, A11Y_IDS, function (k) { haptic('light'); if (k === 'largeText' || k === 'contrast') { try { window.dispatchEvent(new Event('resize')); } catch (e) {} } });
   $('set-marks').addEventListener('change', function (e) { save.settings.marks = e.target.checked; persist(); applySkins(); });
   $('btn-privacy-options').addEventListener('click', function () { window.Ads.showPrivacyOptions(); });
   $('btn-reset').addEventListener('click', function () {
@@ -854,6 +858,7 @@
   window.__weekly = weekly;
 
   // ---------------- boot ----------------
+  if (window.A11y) window.A11y.apply(save.settings);
   SFX.setEnabled(save.settings.sound);
   applySkins(); setCoins();
   $('play-level').textContent = 'Level ' + save.level;

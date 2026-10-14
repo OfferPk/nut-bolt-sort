@@ -1,7 +1,7 @@
 /* v1.4 win juice: lightweight confetti burst (DOM + WAAPI), skipped for reduced motion. */
 (function (root) {
   'use strict';
-  function reduced() { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  function reduced() { if (root.A11y) return root.A11y.reduced(); return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   var COLORS = ['#ff4d6d', '#ffd34d', '#4be0a0', '#39f6ff', '#9b7bff', '#ff9f43'];
   function burst(x, y, n) {
     if (typeof document === 'undefined' || reduced()) return 0;
