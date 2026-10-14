@@ -21,8 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: play-store-${{ github.ref }}
-  cancel-in-progress: true
+  group: play-store-${{ github.ref }}-${{ inputs.release }}
+  cancel-in-progress: false
 
 jobs:
   store-build:
