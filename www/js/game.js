@@ -16,6 +16,7 @@
       skin: { nut: 'anodized', bolt: 'steel', bg: 'graphite' },
       settings: { sound: true, haptics: true, marks: false },
       current: null,
+      trial: {},
       ad: {}
     };
   }
@@ -75,10 +76,17 @@
   function setCoins() {
     Array.prototype.forEach.call(document.querySelectorAll('.coins-val'), function (e) { e.textContent = save.coins; });
   }
+  // preview (while the shop is open) > active 24h ad trial > equipped
+  var shopPreview = {};
+  function validSkin(k, id) { return SK[k].some(function (it) { return it.id === id; }); }
+  function curSkin(k) {
+    var id = shopPreview[k] || (window.ShopCore.trialActive(save, k) ? save.trial[k].id : save.skin[k]);
+    return validSkin(k, id) ? id : SK[k][0].id;
+  }
   function applySkins() {
     var cl = document.body.classList;
     Array.prototype.slice.call(cl).forEach(function (c) { if (/^(bg|bolt|nut)-/.test(c)) cl.remove(c); });
-    cl.add('bg-' + save.skin.bg, 'bolt-' + save.skin.bolt, 'nut-' + save.skin.nut);
+    cl.add('bg-' + curSkin('bg'), 'bolt-' + curSkin('bolt'), 'nut-' + curSkin('nut'));
     cl.toggle('marks', !!save.settings.marks);
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -579,8 +587,10 @@
     var grid = $('shop-grid'); grid.innerHTML = '';
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) { t.classList.toggle('active', t.dataset.tab === shopTab); });
     SK[shopTab].forEach(function (it) {
-      var owned = save.owned[shopTab].indexOf(it.id) >= 0, sel = save.skin[shopTab] === it.id;
-      var d = document.createElement('div'); d.className = 'item' + (sel ? ' selected' : '');
+      var tab = shopTab;
+      var owned = save.owned[tab].indexOf(it.id) >= 0, sel = save.skin[tab] === it.id;
+      var trialOn = window.ShopCore.trialActive(save, tab), onTrial = trialOn && save.trial[tab].id === it.id;
+      var d = document.createElement('div'); d.className = 'item' + (sel ? ' selected' : '') + (shopPreview[tab] === it.id ? ' previewing' : '');
       var prev = document.createElement('div');
       var skinCls = { nut: 'nut-' + (shopTab === 'nut' ? it.id : save.skin.nut), bolt: 'bolt-' + (shopTab === 'bolt' ? it.id : save.skin.bolt), bg: 'bg-' + (shopTab === 'bg' ? it.id : save.skin.bg) };
       prev.className = 'sw-prev ' + skinCls.nut + ' ' + skinCls.bolt + ' ' + skinCls.bg;
@@ -593,20 +603,39 @@
         prev.appendChild(n);
       });
       d.appendChild(prev);
+      prev.title = 'Preview'; prev.style.cursor = 'zoom-in';
+      prev.addEventListener('click', function () {
+        SFX.click();
+        if (shopPreview[tab] === it.id) delete shopPreview[tab]; else { shopPreview[tab] = it.id; toast('Previewing ' + it.name + '. Close the shop to go back.', 1600); }
+        applySkins(); renderShop();
+      });
       var nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = it.name; d.appendChild(nm);
+      if (onTrial) { var tt = document.createElement('span'); tt.className = 'trial-tag'; tt.textContent = 'Trial · ' + window.ShopCore.fmtLeft(window.ShopCore.trialLeft(save, tab)) + ' left'; d.appendChild(tt); }
       var b = document.createElement('button'); b.className = 'buy';
-      if (sel) b.textContent = 'Equipped';
+      if (sel && !trialOn) b.textContent = 'Equipped';
       else if (owned) { b.textContent = 'Equip'; b.classList.add('can'); }
       else { b.innerHTML = '<span class="coin-ico"></span>' + it.price; if (save.coins >= it.price) b.classList.add('can'); }
       b.addEventListener('click', function () {
-        if (sel) return;
+        if (sel && !trialOn) return;
         if (!owned) {
           if (save.coins < it.price) { SFX.error(); toast('Clear more levels to earn ' + (it.price - save.coins) + ' more coins'); return; }
           save.coins -= it.price; save.owned[shopTab].push(it.id); SFX.coin();
         } else SFX.click();
-        save.skin[shopTab] = it.id; persist(); applySkins(); renderShop();
+        save.skin[tab] = it.id; delete save.trial[tab]; delete shopPreview[tab]; persist(); applySkins(); renderShop();
       });
       d.appendChild(b);
+      if (!owned && !onTrial) {
+        var tb = document.createElement('button'); tb.className = 'try rewarded'; tb.innerHTML = 'Try 24h free <em class="ad-badge">▶ AD</em>';
+        tb.addEventListener('click', function () {
+          SFX.click();
+          window.Ads.showRewarded(function () {
+            if (!save.trial || typeof save.trial !== 'object') save.trial = {};
+            window.ShopCore.startTrial(save, tab, it.id); delete shopPreview[tab];
+            persist(); applySkins(); renderShop(); toast(it.name + ' unlocked for 24 hours');
+          }, function () { toast('No ad available right now. Try again in a moment.'); });
+        });
+        d.appendChild(tb);
+      }
       grid.appendChild(d);
     });
   }
@@ -691,6 +720,9 @@
   $('stuck-restart').addEventListener('click', function () { restart(); });
   $('stuck-extra').addEventListener('click', function () { $('stuck').classList.add('hidden'); extraBolt(); });
   $('btn-shop').addEventListener('click', function () { SFX.unlock(); SFX.click(); renderShop(); $('shop').classList.remove('hidden'); });
+  $('btn-shop-card').addEventListener('click', function () { SFX.unlock(); SFX.click(); renderShop(); $('shop').classList.remove('hidden'); });
+  document.querySelector('[data-close="shop"]').addEventListener('click', function () { shopPreview = {}; applySkins(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') applySkins(); });
   $('btn-settings-home').addEventListener('click', function () { SFX.unlock(); SFX.click(); syncSettingsUI(); $('settings').classList.remove('hidden'); });
   function syncMenuCard() {
     var b = $('btn-play');

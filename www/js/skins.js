@@ -2,23 +2,30 @@
 window.SKINS = {
   nut: [
     { id: 'anodized', name: 'Anodized', price: 0 },
+    { id: 'satin', name: 'Satin Brushed', price: 150 },
     { id: 'matte', name: 'Powder Matte', price: 250 },
     { id: 'chrome', name: 'Chrome Polish', price: 450 },
-    { id: 'neon', name: 'Neon Edge', price: 800 }
+    { id: 'pearl', name: 'Pearl Coat', price: 550 },
+    { id: 'neon', name: 'Neon Edge', price: 800 },
+    { id: 'ember', name: 'Ember Glow', price: 950 }
   ],
   bolt: [
     { id: 'steel', name: 'Machined Steel', price: 0 },
     { id: 'brass', name: 'Brass', price: 300 },
     { id: 'copper', name: 'Copper', price: 400 },
     { id: 'oxide', name: 'Black Oxide', price: 600 },
+    { id: 'rosegold', name: 'Rose Gold', price: 700 },
+    { id: 'cobalt', name: 'Cobalt Blue', price: 850 },
     { id: 'titanium', name: 'Titanium', price: 1000 }
   ],
   bg: [
     { id: 'graphite', name: 'Graphite', price: 0 },
     { id: 'blueprint', name: 'Blueprint', price: 200 },
+    { id: 'workbench', name: 'Workbench Oak', price: 250 },
     { id: 'plate', name: 'Tread Plate', price: 350 },
     { id: 'midnight', name: 'Midnight Teal', price: 500 },
-    { id: 'carbon', name: 'Carbon Fiber', price: 750 }
+    { id: 'carbon', name: 'Carbon Fiber', price: 750 },
+    { id: 'sunset', name: 'Sunset Garage', price: 450 }
   ]
 };
 /* Nut colors: industrial anodized palette + a mark for the color-blind aid. */
@@ -36,3 +43,5 @@ window.NUT_COLORS = [
   { c: '#d5dbe0', m: '✕', name: 'silver' }, // silver
   { c: '#5d6b7a', m: '○', name: 'gunmetal' } // gunmetal
 ];
+
+if (typeof module !== 'undefined') module.exports = window.SKINS;
