@@ -383,3 +383,12 @@ body.bg-prism, .bg-swatch.bg-prism { background: conic-gradient(from 210deg at 5
 .weekly-foot { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 8px; opacity: .85; }
 .weekly-crest { font-size: 18px; }
 .daily-panel { max-height: calc(100% - 24px); overflow-y: auto; }
+/* Crest showcase (v1.7) */
+.ach-tabs button { flex: 1 1 0; min-width: 0; padding: 8px 4px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crest-wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 6px; }
+.crest { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border-radius: 12px;
+  background: radial-gradient(circle at 50% 30%, rgba(255,210,90,.28), rgba(255,210,90,.06) 70%); border: 1px solid rgba(255,210,90,.45); }
+.crest-medal { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.crest b { font-size: 13px; } .crest small { font-size: 10px; opacity: .7; }
+.crest-empty { grid-column: 1 / -1; font-size: 13px; opacity: .8; margin: 4px 0; text-align: center; }
+.crest-hist-h { margin-top: 12px; }

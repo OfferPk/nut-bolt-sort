@@ -33,11 +33,20 @@
     });
     return out;
   }
-  function fresh(wk) { return { wk: wk, p: {}, got: {}, all: 0, crests: [] }; }
+  function fresh(wk) { return { wk: wk, p: {}, got: {}, all: 0, crests: [], hist: [], seen: null }; }
+  var HIST_MAX = 12;
   function normalize(s, wk) {
     var d = fresh(wk);
     if (s && typeof s === 'object') {
       if (Array.isArray(s.crests)) d.crests = s.crests.filter(function (c) { return /^\d{4}-W\d\d$/.test(c); }).slice(-104);
+      if (Array.isArray(s.hist)) d.hist = s.hist.filter(function (h) { return h && /^\d{4}-W\d\d$/.test(h.wk) && h.wk !== wk; }).map(function (h) { return { wk: h.wk, n: Math.max(0, Math.min(N_GOALS, h.n | 0)), all: h.all ? 1 : 0 }; }).slice(-HIST_MAX);
+      if (typeof s.seen === 'string') d.seen = s.seen;
+      if (typeof s.wk === 'string' && /^\d{4}-W\d\d$/.test(s.wk) && s.wk !== wk && s.wk < wk) {
+        // week rolled over: archive last week's result (only if the player touched it)
+        var n = s.got && typeof s.got === 'object' ? Object.keys(s.got).filter(function (k) { return s.got[k]; }).length : 0;
+        var touched = n || (s.p && Object.keys(s.p).length);
+        if (touched && !d.hist.some(function (h) { return h.wk === s.wk; })) { d.hist.push({ wk: s.wk, n: Math.min(N_GOALS, n), all: s.all ? 1 : 0 }); d.hist = d.hist.slice(-HIST_MAX); }
+      }
       if (s.wk === wk) {
         if (s.p && typeof s.p === 'object') Object.keys(s.p).forEach(function (k) { var v = +s.p[k]; if (isFinite(v) && v > 0) d.p[k] = v; });
         if (s.got && typeof s.got === 'object') Object.keys(s.got).forEach(function (k) { if (s.got[k]) d.got[k] = 1; });
@@ -59,7 +68,15 @@
     }
     return out;
   }
-  var Logic = { GOAL_COINS: GOAL_COINS, ALL_BONUS: ALL_BONUS, weekKey: weekKey, daysLeft: daysLeft, goalsFor: goalsFor, fresh: fresh, normalize: normalize, track: track };
+  /** mid-week reminder: goals still open, Thursday or later, and the Daily panel not opened today */
+  function remind(s, now) {
+    now = now || new Date();
+    if (s.all) return false;
+    var today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    return daysLeft(now) <= 4 && s.seen !== today;
+  }
+  function doneCount(s) { return Object.keys(s.got).filter(function (k) { return s.got[k]; }).length; }
+  var Logic = { remind: remind, doneCount: doneCount, HIST_MAX: HIST_MAX, GOAL_COINS: GOAL_COINS, ALL_BONUS: ALL_BONUS, weekKey: weekKey, daysLeft: daysLeft, goalsFor: goalsFor, fresh: fresh, normalize: normalize, track: track };
   root.WeeklyLogic = Logic;
   if (typeof module !== 'undefined' && module.exports) module.exports = Logic;
   if (typeof document === 'undefined') return;
@@ -110,15 +127,53 @@
         persist(); var c = 0; got.forEach(function (x) { c += x.coins; });
         o.addCoins(c);
         got.forEach(function (x, i) {
-          setTimeout(function () { sfx('coin'); toast(x.all ? '🏅 Weekly crest ' + s.wk + '! +' + x.coins + ' coins' : 'Weekly goal done: ' + x.goal.text + ' · +' + x.coins + ' coins', 2600); }, 600 + i * 2800);
+          setTimeout(function () { sfx(x.all ? 'crest' : 'goal'); toast(x.all ? '🏅 Weekly crest ' + s.wk + '! +' + x.coins + ' coins' : 'Weekly goal done: ' + x.goal.text + ' · +' + x.coins + ' coins', 2600); }, 600 + i * 2800);
         });
         render(); return c;
       },
-      refresh: render, goals: function () { return goals; }, state: function () { return s; }
+      refresh: render, remind: function () { return remind(s); }, goals: function () { return goals; }, state: function () { return s; }
     };
     render();
+    function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
     var dailyBtn = document.getElementById('btn-daily');
-    if (dailyBtn) dailyBtn.addEventListener('click', render);
+    if (dailyBtn) dailyBtn.addEventListener('click', function () {
+      if (s.wk !== weekKey()) load();
+      s.seen = today(); persist(); render(); if (o.daily && o.daily.refresh) o.daily.refresh();
+    });
+    if (o.daily && o.daily.setExtraDot) o.daily.setExtraDot(function () {
+      if (s.wk !== weekKey()) load();
+      var dl = daysLeft();
+      return { dot: remind(s), text: 'Weekly ' + doneCount(s) + '/' + goals.length + ' · ' + (dl === 1 ? 'last day' : dl + ' days left') };
+    });
+    // v1.7: crest showcase + weekly history tab in Achievements
+    if (o.ach && o.ach.addTab) o.ach.addTab('crests', 'Crests', function (body) {
+      if (s.wk !== weekKey()) load();
+      var head = document.createElement('p'); head.className = 'ach-sum';
+      head.textContent = s.crests.length + (s.crests.length === 1 ? ' weekly crest' : ' weekly crests') + ' collected';
+      body.appendChild(head);
+      var wall = document.createElement('div'); wall.className = 'crest-wall';
+      if (!s.crests.length) {
+        var e = document.createElement('p'); e.className = 'crest-empty';
+        e.textContent = 'Finish all 3 weekly goals (in the Daily card) to earn your first crest.'; wall.appendChild(e);
+      }
+      s.crests.slice().reverse().forEach(function (c) {
+        var b = document.createElement('div'); b.className = 'crest';
+        b.innerHTML = '<span class="crest-medal" aria-hidden="true">🏅</span><b></b><small></small>';
+        b.querySelector('b').textContent = 'W' + c.split('-W')[1]; b.querySelector('small').textContent = c.split('-W')[0];
+        b.title = 'Weekly crest ' + c; wall.appendChild(b);
+      });
+      body.appendChild(wall);
+      var h = document.createElement('p'); h.className = 'ach-sum crest-hist-h'; h.textContent = 'Weekly history'; body.appendChild(h);
+      var t = document.createElement('div'); t.className = 'stats-tbl crest-hist';
+      var rows = [{ wk: s.wk, n: doneCount(s), all: s.all, now: true }].concat(s.hist.slice().reverse());
+      rows.forEach(function (r) {
+        var e = document.createElement('div'); e.className = 'stat-row'; e.innerHTML = '<span></span><b></b>';
+        e.firstChild.textContent = r.wk + (r.now ? ' (this week)' : '');
+        e.lastChild.textContent = r.n + ' / ' + N_GOALS + (r.all ? ' · 🏅' : '');
+        t.appendChild(e);
+      });
+      body.appendChild(t);
+    });
     return api;
   }
   root.Weekly = { create: create };

@@ -107,9 +107,10 @@
       q('.daily-ch-s').textContent = (done ? '✓ Completed today' : ch.desc + ' · +' + CHALLENGE_REWARD + ' coins') + (cs ? ' · streak ' + cs : '');
       var pb = q('.daily-play'); pb.textContent = done ? 'Completed ✓' : (ch.cta || 'Play challenge'); pb.disabled = done;
       var badge = document.getElementById('daily-dot');
-      if (badge) badge.classList.toggle('hidden', st.claimed && done);
+      var extra = api && api._extraDot ? api._extraDot() : null;
+      if (badge) badge.classList.toggle('hidden', st.claimed && done && !(extra && extra.dot));
       var sub = document.getElementById('daily-card-sub');
-      if (sub) sub.textContent = !st.claimed ? 'Reward ready' : (done ? 'All done today' : 'Challenge open');
+      if (sub) sub.textContent = !st.claimed ? 'Reward ready' : (!done ? 'Challenge open' : (extra && extra.dot ? extra.text : 'All done today'));
     }
     q('.daily-x').addEventListener('click', function () { sfx('click'); ov.classList.add('hidden'); });
     q('.daily-claim').addEventListener('click', function () {
@@ -142,7 +143,9 @@
         if (o.onEvent) o.onEvent('challenge', { streak: r.streak });
         return true;
       },
-      state: function () { return s; }
+      state: function () { return s; },
+      /** v1.7: fn() -> {dot:bool, text:string}; lets the weekly challenge light the card dot mid-week */
+      setExtraDot: function (fn) { api._extraDot = fn; render(); }
     };
     render();
     return api;

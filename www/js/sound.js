@@ -7,7 +7,9 @@
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
-      master = ctx.createGain(); master.gain.value = 0.55; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = 0.55;
+      var comp = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
+      if (comp) { comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.15; master.connect(comp); comp.connect(ctx.destination); } else master.connect(ctx.destination);
     }
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
@@ -23,7 +25,7 @@
   // short filtered noise burst = thread "tick"
   function tick(t, freq, vol, dur) {
     var c = ctx, src = c.createBufferSource(); src.buffer = noise(c);
-    var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 8;
+    var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq * (0.97 + Math.random() * 0.06); f.Q.value = 8;
     var g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + dur + 0.02);
   }
@@ -47,6 +49,7 @@
   var S = {
     setEnabled: function (v) { enabled = !!v; },
     unlock: function () { if (enabled) ac(); },
+    _ctx: function () { return ctx; },
     lift: function (n) {
       if (!enabled || !ac()) return; var t = ctx.currentTime;
       for (var i = 0; i < 4 + (n || 1); i++) tick(t + i * 0.035, 2600 + i * 180, 0.35, 0.03);
@@ -66,8 +69,14 @@
       if (!enabled || !ac()) return; var t = ctx.currentTime;
       [523, 659, 784, 1046, 1318].forEach(function (f, i) { ting(t + i * 0.09, f, 0.3, 1.2); });
     },
+    goal: function () { if (!enabled || !ac()) return; var t = ctx.currentTime; [880, 1175, 1568].forEach(function (f, i) { ting(t + i * 0.07, f, 0.16, 0.7); }); },
+    crest: function () { if (!enabled || !ac()) return; var t = ctx.currentTime; [523, 784, 659, 1046, 1318, 1568].forEach(function (f, i) { ting(t + i * 0.11, f, 0.2, 1.4); }); thud(t, 0.18); },
     click: function () { if (!enabled || !ac()) return; tick(ctx.currentTime, 3200, 0.25, 0.025); },
     coin: function () { if (!enabled || !ac()) return; var t = ctx.currentTime; ting(t, 1760, 0.2, 0.3); ting(t + 0.07, 2350, 0.18, 0.35); }
   };
   window.SFX = S;
 })();
+/* v1.7: stop any ringing chimes when the app goes to background; resume on next sound */
+document.addEventListener('visibilitychange', function () {
+  try { var c = window.SFX && window.SFX._ctx && window.SFX._ctx(); if (c && document.visibilityState === 'hidden' && c.state === 'running') c.suspend(); } catch (e) {}
+});

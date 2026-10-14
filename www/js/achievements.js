@@ -73,7 +73,7 @@
     var KEY = o.key, s, defs = COMMON.concat(o.defs || []);
     try { s = normalize(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { s = fresh(); }
     function persist() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
-    var toast = o.toast || function () {}, sfx = o.sfx || function () {}, tab = 'ach', queue = [], showing = false;
+    var toast = o.toast || function () {}, sfx = o.sfx || function () {}, tab = 'ach', queue = [], showing = false, extra = {};
 
     var ov = document.createElement('div');
     ov.id = 'achievements'; ov.className = 'overlay hidden ach-overlay';
@@ -105,6 +105,8 @@
           r.querySelector('.ach-v').textContent = p.done ? 'Unlocked' : shown;
           body.appendChild(r);
         });
+      } else if (extra[tab]) {
+        extra[tab].render(body);
       } else {
         var rows = [['Games played', fmt(get(s, 'games'))]].concat(o.stats ? o.stats(s) : []).concat([
           ['Total coins earned', fmt(get(s, 'coins_earned'))],
@@ -140,6 +142,14 @@
       return got;
     }
     var api = {
+      /** v1.7: extra tab (e.g. weekly crests) rendered into the same overlay */
+      addTab: function (id, label, renderFn) {
+        if (extra[id]) return; extra[id] = { render: renderFn };
+        var b = document.createElement('button'); b.dataset.t = id; b.textContent = label;
+        ov.querySelector('.ach-tabs').appendChild(b);
+        b.addEventListener('click', function () { sfx('click'); tab = id; render(); });
+      },
+      openTab: function (id) { tab = id; sync(); render(); ov.classList.remove('hidden'); },
       bump: function (k, n) { bump(s, k, n); return sync(); },
       max: function (k, v) { max(s, k, v); return sync(); },
       min: function (k, v) { min(s, k, v); return sync(); },
