@@ -89,7 +89,7 @@
     var cl = document.body.classList;
     Array.prototype.slice.call(cl).forEach(function (c) { if (/^(bg|bolt|nut)-/.test(c)) cl.remove(c); });
     cl.add('bg-' + curSkin('bg'), 'bolt-' + curSkin('bolt'), 'nut-' + curSkin('nut'));
-    cl.toggle('marks', !!save.settings.marks);
+    cl.toggle('marks', window.A11y ? window.A11y.marksOn(save.settings) : !!save.settings.marks);
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function prefersReducedMotion() {
@@ -858,6 +858,7 @@
   window.__weekly = weekly;
 
   // ---------------- boot ----------------
+  if (window.A11y && window.A11y.previewBar) window.A11y.previewBar({ settings: save.settings, marks: true, rerender: function () { applySkins(); renderShop(); }, sfx: function () { SFX.click(); } });
   if (window.A11y) window.A11y.apply(save.settings);
   SFX.setEnabled(save.settings.sound);
   applySkins(); setCoins();

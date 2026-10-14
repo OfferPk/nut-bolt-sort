@@ -40,6 +40,38 @@
     });
   };
   A.sync = function (settings, ids) { A.apply(settings); Object.keys(ids).forEach(function (k) { var el = document.getElementById(ids[k]); if (el) el.checked = k === 'reduceMotion' ? A.reduced() : !!settings[k]; }); };
+
+  /**
+   * v1.9 shop preview: "Preview with" chips (High contrast / Larger text / Symbols) in the shop panel.
+   * Temporary only: nothing is saved, and the real settings are restored when the shop closes.
+   */
+  A.preview = { contrast: null, largeText: null, marks: null };
+  A.marksOn = function (settings) { return A.preview.marks != null ? A.preview.marks : !!(settings && settings.marks); };
+  A.previewBar = function (o) {
+    var ov = document.getElementById(o.overlay || 'shop'); if (!ov) return null;
+    var panel = ov.querySelector('.panel'), anchor = panel.querySelector('.note');
+    var bar = document.createElement('div'); bar.className = 'a11y-preview'; bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Preview themes with accessibility options');
+    bar.innerHTML = '<span class="a11y-preview-l">Preview with:</span>';
+    var chips = [['contrast', 'High contrast'], ['largeText', 'Larger text']].concat(o.marks ? [['marks', 'Symbols']] : []);
+    function cur(k) { return A.preview[k] != null ? A.preview[k] : !!o.settings[k]; }
+    function paint() {
+      var cl = document.documentElement.classList;
+      cl.toggle('a11y-contrast', cur('contrast')); cl.toggle('a11y-large', cur('largeText'));
+      if (o.marks) document.body.classList.toggle('marks', cur('marks'));
+      Array.prototype.forEach.call(bar.querySelectorAll('button'), function (b) { var on = cur(b.dataset.k); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    }
+    chips.forEach(function (c) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.k = c[0]; b.textContent = c[1];
+      b.addEventListener('click', function () { A.preview[c[0]] = !cur(c[0]); paint(); if (o.rerender) o.rerender(); if (o.sfx) o.sfx(); });
+      bar.appendChild(b);
+    });
+    if (anchor && anchor.nextSibling) panel.insertBefore(bar, anchor.nextSibling); else panel.appendChild(bar);
+    function reset() { A.preview = { contrast: null, largeText: null, marks: null }; A.apply(o.settings); if (o.marks) document.body.classList.toggle('marks', !!o.settings.marks); if (o.rerender) o.rerender(); paint(); }
+    new MutationObserver(function () { if (ov.classList.contains('hidden')) { if (A.preview.contrast != null || A.preview.largeText != null || A.preview.marks != null) reset(); } else paint(); })
+      .observe(ov, { attributes: true, attributeFilter: ['class'] });
+    paint();
+    return { reset: reset, paint: paint };
+  };
   if (typeof Element !== 'undefined' && Element.prototype.animate && !Element.prototype.animate.__a11y) {
     var orig = Element.prototype.animate;
     var wrapped = function (frames, opts) {

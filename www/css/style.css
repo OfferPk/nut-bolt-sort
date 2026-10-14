@@ -412,3 +412,13 @@ html.a11y-contrast :focus-visible { outline: 3px solid #ffd400 !important; outli
 html.a11y-contrast .overlay { background: rgba(0,0,0,.78); }
 html.a11y-contrast { --muted: var(--txt); }
 html.a11y-contrast .nut { outline: 2px solid rgba(0,0,0,.75); outline-offset: -2px; }
+/* Screen-reader helpers (v1.9) */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sr-grid { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.sr-grid button { position: absolute; width: 44px; height: 44px; transform: translate(-50%, -50%); background: transparent; border: 0; padding: 0; color: transparent; font-size: 1px; }
+.sr-grid button:focus-visible, .slot:focus-visible, #board .cell:focus-visible { outline: 3px solid #ffd400; outline-offset: 2px; border-radius: 8px; }
+.slot.sr-sel { outline: 3px dashed #ffd400; outline-offset: -3px; border-radius: 12px; }
+.a11y-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 8px; font-size: 12px; }
+.a11y-preview-l { opacity: .75; font-weight: 700; }
+.a11y-preview .chip { padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(127,127,127,.45); background: rgba(127,127,127,.12); font-size: 12px; font-weight: 700; color: inherit; }
+.a11y-preview .chip.on { background: #ffd400; color: #1a1400; border-color: #ffd400; }
