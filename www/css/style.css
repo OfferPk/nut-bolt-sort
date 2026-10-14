@@ -269,3 +269,20 @@ body.web .ad-badge { display: none; }
 .howto-card { background: linear-gradient(180deg, #2a3038, #1b1f25); color: var(--txt); }
 .rules th { color: #b7ecff; }
 .howto-x { color: #e8ecf1; background: #111418; }
+/* Daily reward + challenge */
+.daily-panel { max-width: 420px; width: calc(100% - 32px); }
+.daily-sub { margin: 10px 0 6px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 12px; opacity: .8; }
+.daily-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.daily-day { border-radius: 10px; padding: 6px 2px; text-align: center; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; }
+.daily-day small { font-size: 10px; opacity: .75; }
+.daily-day.got { opacity: .55; background: rgba(80,220,160,.18); }
+.daily-day.now { border-color: #ffd34d; box-shadow: 0 0 10px rgba(255,211,77,.6); }
+.daily-day .coin-ico { transform: scale(.75); }
+.daily-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.daily-actions .btn[disabled] { opacity: .55; }
+.daily-ch { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
+.daily-ch-s { font-size: 13px; opacity: .85; }
+.daily-note { font-size: 11px; opacity: .65; margin-top: 10px; }
+.daily-open { position: relative; }
+#daily-dot { position: absolute; top: 8px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 8px #ff4d6d; }
+.hidden#daily-dot { display: none; }

@@ -242,8 +242,9 @@
     if (p.empty === 1) t += ' · tight';
     return t;
   }
-  function startLevel(level, restore) {
+  function startLevel(level, restore, dailyKey) {
     S.level = level;
+    S.daily = dailyKey || null;
     var g = L.generateLevel(level);
     S.cap = g.capacity; S.colors = g.colors;
     S.start = clone(g.bolts);
@@ -254,7 +255,7 @@
     } else {
       S.bolts = clone(g.bolts); S.history = []; S.moves = 0; S.extraUsed = false;
     }
-    $('lvl-title').textContent = 'LEVEL ' + level;
+    $('lvl-title').textContent = (S.daily ? 'DAILY · LEVEL ' : 'LEVEL ') + level;
     $('lvl-sub').textContent = paramsText();
     $('play-level').textContent = 'Level ' + level;
     closeWinPanel(); $('stuck').classList.add('hidden');
@@ -264,6 +265,7 @@
     if (native && gate.state.maxCompleted >= gate.config.INTERSTITIAL_MIN_LEVEL - 1) window.Ads.prepareInterstitial();
   }
   function saveCurrent() {
+    if (S.daily) return;
     save.level = S.level;
     save.current = { level: S.level, bolts: S.bolts, history: S.history.slice(-100), moves: S.moves, extraUsed: S.extraUsed };
     persist();
@@ -452,6 +454,15 @@
   async function win() {
     var sequence = ++winSequence;
     S.won = true;
+    if (S.daily) {
+      SFX.win(); haptic('success');
+      daily.complete(S.daily); gate.levelCompleted(S.level); persist();
+      await wait(prefersReducedMotion() ? 0 : 650);
+      if (sequence !== winSequence || !S.won) return;
+      $('win-level').textContent = 'Daily ' + S.level; $('win-moves').textContent = S.moves; $('win-best').textContent = S.moves;
+      $('win-record-note').classList.add('hidden'); $('win-coins').textContent = '+' + window.DailyLogic.CHALLENGE_REWARD;
+      openWinPanel(); return;
+    }
     var levelKey = String(S.level), oldRecord = save.bestMoves[levelKey];
     var newRecord = !oldRecord || S.moves < oldRecord;
     if (newRecord) save.bestMoves[levelKey] = S.moves;
@@ -718,6 +729,18 @@
     if (++tickCount % 10 === 0) persist();
   }, 1000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') persist(); });
+
+  // ---------------- daily ----------------
+  function dailyLevelFor(key) { return 12 + (window.DailyLogic.seedFor(key, 'nutbolt') % 40); }
+  var daily = window.Daily.create({
+    key: 'nutboltsort.daily.v1',
+    addCoins: function (n) { save.coins += n; persist(); setCoins(); },
+    rewarded: function (ok, fail) { window.Ads.showRewarded(ok, fail); },
+    toast: toast, sfx: function (k) { if (k === 'coin') SFX.coin(); else SFX.click(); },
+    challenge: function (key) { return { title: 'Daily Bolt', desc: 'Same level for everyone today (Level ' + dailyLevelFor(key) + ')', cta: 'Play Daily Bolt' }; },
+    play: function (key) { showGame(); startLevel(dailyLevelFor(key), false, key); toast('Daily Bolt: Level ' + S.level); }
+  });
+  $('btn-daily').addEventListener('click', function () { SFX.unlock(); SFX.click(); daily.open(); });
 
   // ---------------- boot ----------------
   SFX.setEnabled(save.settings.sound);
