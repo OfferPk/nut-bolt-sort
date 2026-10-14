@@ -337,3 +337,21 @@ body.bg-prism, .bg-swatch.bg-prism { background: conic-gradient(from 210deg at 5
 #home > * { flex-shrink: 0; }
 @media (max-height: 760px) { #home { gap: 12px; } #home .menu-col { gap: 9px; } #home .logo { zoom: .85; } }
 @media (max-height: 680px) { #home { gap: 8px; padding-top: calc(var(--sat) + 8px); } #home .logo { zoom: .62; } #home .menu-col { gap: 7px; } }
+/* v1.4 first-level coach marks */
+.coach { position: fixed; inset: 0; z-index: 90; background: rgba(4,6,14,.45); }
+.coach-ring { position: fixed; border-radius: 14px; border: 2px solid #7efbff; box-shadow: 0 0 0 9999px rgba(4,6,14,.35), 0 0 14px #39f6ff; pointer-events: none; transition: all .25s ease; animation: coachPulse 1.4s ease-in-out infinite; }
+.coach-tip { position: fixed; width: min(320px, calc(100vw - 24px)); box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: #121a2b; color: #eef6ff; border: 1px solid rgba(126,251,255,.6); box-shadow: 0 10px 30px rgba(0,0,0,.45); font-size: 15px; line-height: 1.35; }
+.coach-tip p { margin: 0 0 10px; }
+.coach-tip.pop { animation: coachIn .22s ease-out; }
+.coach-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.coach-row button { padding: 7px 14px; border-radius: 10px; font-weight: 800; }
+.coach-next { background: linear-gradient(180deg, #7efbff, #2aa8ff); color: #04121a; }
+.coach-skip { background: rgba(255,255,255,.08); color: #cfe; }
+.coach-dots { font-size: 12px; opacity: .7; }
+@keyframes coachPulse { 50% { box-shadow: 0 0 0 9999px rgba(4,6,14,.35), 0 0 24px #39f6ff; } }
+@keyframes coachIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .coach-ring, .coach-tip.pop { animation: none; transition: none; } }
+.juice-bit { position: fixed; width: 8px; height: 12px; z-index: 95; pointer-events: none; border-radius: 2px; }
+/* v1.4: fit the whole home menu on 360x640 without scrolling */
+@media (max-height: 760px) { #home { gap: 9px; } #home .menu-col { gap: 8px; } }
+@media (max-height: 680px) { #home { gap: 6px; padding-top: calc(var(--sat) + 4px); padding-bottom: calc(var(--sab) + 4px); } #home .logo { zoom: .5; } #home .menu-col { gap: 6px; } #home .home-link { margin: 0; } }

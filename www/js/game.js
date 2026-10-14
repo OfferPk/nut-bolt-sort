@@ -256,7 +256,7 @@
     var g = L.generateLevel(level);
     S.cap = g.capacity; S.colors = g.colors;
     S.start = clone(g.bolts);
-    S.sel = -1; S.liftN = 0; S.busy = false; S.won = false; S.undoUsed = false; S.hintUsed = false;
+    S.sel = -1; S.liftN = 0; S.busy = false; S.won = false; S.undoUsed = false; S.hintUsed = false; S.achCounted = false;
     var cur = save.current;
     if (restore && cur && cur.level === level && Array.isArray(cur.bolts)) {
       S.bolts = clone(cur.bolts); S.history = (cur.history || []).slice(-100); S.moves = cur.moves || 0; S.extraUsed = !!cur.extraUsed;
@@ -464,7 +464,7 @@
     var sequence = ++winSequence;
     S.won = true;
     var cleanWin = !S.undoUsed && !S.hintUsed && !S.extraUsed;
-    if (ach) { ach.bump('games'); ach.bump('wins'); if (cleanWin) ach.bump('clean_wins'); }
+    if (ach && !S.achCounted) { S.achCounted = true; ach.bump('games'); ach.bump('wins'); if (cleanWin) ach.bump('clean_wins'); }
     if (S.daily) {
       SFX.win(); haptic('success');
       daily.complete(S.daily); gate.levelCompleted(S.level); persist();
@@ -487,7 +487,7 @@
     save.current = null;
     persist();
     setCoins();
-    SFX.win(); haptic('success');
+    SFX.win(); haptic('success'); if (window.Juice) window.Juice.burst();
     for (var b = 0; b < S.bolts.length; b++) if (S.bolts[b].length) sparks(b, 8);
     await wait(prefersReducedMotion() ? 0 : 650);
     if (sequence !== winSequence || !S.won || !L.isSolved(S.bolts, S.cap)) return;
@@ -579,6 +579,7 @@
     window.Ads.hideBanner();
   }
   function showGame() {
+    maybeTutorial(false);
     $('home').classList.add('hidden'); $('game').classList.remove('hidden');
     if (!S.bolts.length || S.level !== save.level || S.won) startLevel(save.level, true);
     else layout();
@@ -766,6 +767,41 @@
     if (++tickCount % 10 === 0) persist();
   }, 1000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') persist(); });
+
+  // ---------------- first-level tutorial (coach marks, shown once) ----------------
+  var COACH_KEY = 'nutboltsort.coach.v1';
+  var COACH_STEPS = [
+      {
+          "target": "#board",
+          "text": "Tap a bolt to lift its top nuts, then tap another bolt to drop them there."
+      },
+      {
+          "target": "#board",
+          "text": "Nuts can only land on an empty bolt or on the same colour, with room to spare."
+      },
+      {
+          "target": "#btn-undo",
+          "text": "Made a mistake? Undo is free."
+      },
+      {
+          "target": "#btn-hint",
+          "text": "Hint and +1 Bolt help when stuck. They play a short ad only when you tap them."
+      },
+      {
+          "target": null,
+          "text": "Fill every bolt with one colour to win the level!"
+      }
+  ];
+  function maybeTutorial(force) {
+    setTimeout(function () {
+      if ($('game').classList.contains('hidden')) return;
+      window.Coach.run(COACH_KEY, COACH_STEPS, { force: force, sfx: function () { SFX.click(); } });
+    }, 450);
+  }
+  $('btn-replay-tutorial').addEventListener('click', function () {
+    SFX.click(); window.CoachLogic.reset(localStorage, COACH_KEY); $('settings').classList.add('hidden');
+    toast('The tutorial will play when you next open the game screen');
+  });
 
   // ---------------- achievements + stats ----------------
   var ACH_DEFS = window.ACH_DEFS;

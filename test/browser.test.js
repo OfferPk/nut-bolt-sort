@@ -6,11 +6,14 @@ const puppeteer = require(process.env.PUPPETEER || 'puppeteer-core');
 const URL = (process.argv[2] || 'http://localhost:8765/').replace(/\/?$/, '/');
 const OUT = process.argv[3] || '/tmp';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const achInfo = (k) => globalThis.__page.evaluate((k) => { const s = JSON.parse(localStorage.getItem(k) || '{}'); const defs = window.AchLogic.COMMON.concat(window.ACH_DEFS);
+  return { paid: defs.filter(d => s.done && s.done[d.id]).reduce((a, d) => a + d.reward, 0), m: s.m || {}, done: Object.keys(s.done || {}) }; }, k);
 const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log('  ok -', m); };
 
 (async () => {
   const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
-  const page = await browser.newPage();
+  const page = await browser.newPage(); globalThis.__page = page; await page.evaluateOnNewDocument(() => { try { localStorage.setItem('nutboltsort.coach.v1', '1'); } catch (e) {} });
   await page.emulate({ viewport: { width: 360, height: 640, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129 Mobile Safari/537.36' });
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
@@ -232,6 +235,9 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   await page.focus(`.bolt[data-index="${lastMove[1]}"]`); await page.keyboard.press('Enter'); await idle();
   await page.evaluate(() => { window.__nbs.testWinOpener = document.activeElement; });
   s = await st();
+  const a1 = await achInfo('nutboltsort.ach.v1');
+  assert(a1.m.moves >= 8 && a1.m.wins === 1 && a1.m.games === 1 && a1.done.includes('nb_first'), 'achievement counters: moves (' + a1.m.moves + '), wins, games went up; First Turn unlocked');
+  s.coins -= a1.paid;
   assert(s.won && s.moves === 8 && s.hist === 8 && s.coins === 11 && s.completions === 1, 'final move creates the solved 8/8 board, pays exactly +11 and records one completion');
   assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'a faster clear immediately replaces and persists the previous move record');
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'completion has not yet advanced to the win panel');
@@ -243,6 +249,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(JSON.stringify(s.board) === JSON.stringify(beforeFinal.board) && JSON.stringify(s.history) === JSON.stringify(beforeFinal.history), 'immediate Undo restores the exact board ordering and prior history');
   assert(await page.evaluate(i => document.activeElement === document.querySelector(`.bolt[data-index="${i}"]`), lastMove[0]), 'final-move Undo focuses the move source bolt');
   assert(await page.$eval('#win', e => e.classList.contains('hidden')), 'Undo cancels the pending win panel');
+  { const a2 = await achInfo('nutboltsort.ach.v1'); s.coins -= a2.paid; }
   assert(s.coins === 11 && s.completions === 1 && await page.evaluate(() => window.__nbs.save.level === 1), 'Undo preserves the already-earned reward/completion and keeps the current level');
   assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'undoing the final move does not erase the completed personal-best record');
   assert(await page.evaluate(() => window.__nbs.nextCalls === 0), 'Undo does not call the Next-level transition');
@@ -254,7 +261,9 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   s = await st();
   const winShown = await page.$eval('#win', e => !e.classList.contains('hidden'));
   assert(s.won && winShown, `level 1 won by taps again (${n1} moves) and win panel shown`);
+  assert((await achInfo('nutboltsort.ach.v1')).m.wins === 1, 'Undo + re-solve does not double-count achievement wins');
   assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8 && document.getElementById('win-best').textContent === '8' && document.getElementById('win-record-note').classList.contains('hidden')), 'an equal replay keeps the record without announcing another personal best');
+  s.coins -= (await achInfo('nutboltsort.ach.v1')).paid;
   assert(s.coins === 11 && s.completions === 1 && await page.$eval('#win-coins', e => e.textContent === '+0'), 're-solving the completed level neither pays nor records completion twice');
   const winDialog = await page.$eval('#win-dialog', e => ({
     role: e.getAttribute('role'), modal: e.getAttribute('aria-modal'),
@@ -277,7 +286,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(await page.evaluate(() => !document.getElementById('win').classList.contains('hidden') && document.getElementById('win-dialog').contains(document.activeElement)), 'backdrop tap leaves focus inside the open win dialog');
   assert(await winAuditSnapshot() === completedSnapshot, 'backdrop tap leaves the completed board, move/history, reward, unlocks, settings, and saved data unchanged');
   await page.screenshot({ path: `${OUT}/nbs-win.png` });
-  const coins = s.coins;
+  const coins = await page.evaluate(() => window.__nbs.save.coins);
 
   // --- next level ---
   await page.tap('#btn-next'); await sleep(500);
@@ -323,7 +332,7 @@ const assert = (c, m) => { if (!c) throw new Error('ASSERT: ' + m); console.log(
   assert(s.level === 2 && s.moves === 1 && s.key === keyBefore, 'after reload the in-progress board, move count and level are restored');
   assert(await page.evaluate(() => window.__nbs.save.bestMoves['1'] === 8), 'per-level move records persist across reload with the active board');
   const coins2 = await page.evaluate(() => window.__nbs.save.coins);
-  assert(coins2 === coins, 'coins persisted across reload');
+  assert(coins2 === coins, 'coins persisted across reload (' + coins + ' -> ' + coins2 + ', ach ' + JSON.stringify((await achInfo('nutboltsort.ach.v1')).done) + ')');
 
   // finish level 2 and move on to level 3
   await solveCurrent(); await sleep(900);
