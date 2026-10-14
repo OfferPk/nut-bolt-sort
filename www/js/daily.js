@@ -116,6 +116,7 @@
       var r = claim(s, today()); if (!r.ok) return;
       persist(); o.addCoins(r.coins); lastClaimCoins = r.coins; sfx('coin');
       toast('Day ' + r.day + ' reward: +' + r.coins + ' coins'); render();
+      if (o.onEvent) o.onEvent('claim', { day: r.day });
     });
     q('.daily-2x').addEventListener('click', function () {
       var t = today(); if (doubledFor === t || !lastClaimCoins) return;
@@ -138,6 +139,7 @@
         var r = completeChallenge(s, t); if (!r.ok) return false;
         persist(); o.addCoins(r.coins); sfx('coin');
         toast('Daily challenge complete! +' + r.coins + ' coins', 2600); render();
+        if (o.onEvent) o.onEvent('challenge', { streak: r.streak });
         return true;
       },
       state: function () { return s; }

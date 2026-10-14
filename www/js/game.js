@@ -74,7 +74,7 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.add('hidden'); }, ms || 2200);
   }
   function setCoins() {
-    Array.prototype.forEach.call(document.querySelectorAll('.coins-val'), function (e) { e.textContent = save.coins; });
+    Array.prototype.forEach.call(document.querySelectorAll('.coins-val'), function (e) { e.textContent = save.coins; }); if (typeof ach !== 'undefined' && ach) ach.sync();
   }
   // preview (while the shop is open) > active 24h ad trial > equipped
   var shopPreview = {};
@@ -256,7 +256,7 @@
     var g = L.generateLevel(level);
     S.cap = g.capacity; S.colors = g.colors;
     S.start = clone(g.bolts);
-    S.sel = -1; S.liftN = 0; S.busy = false; S.won = false;
+    S.sel = -1; S.liftN = 0; S.busy = false; S.won = false; S.undoUsed = false; S.hintUsed = false;
     var cur = save.current;
     if (restore && cur && cur.level === level && Array.isArray(cur.bolts)) {
       S.bolts = clone(cur.bolts); S.history = (cur.history || []).slice(-100); S.moves = cur.moves || 0; S.extraUsed = !!cur.extraUsed;
@@ -355,6 +355,7 @@
     els[from].splice(els[from].length - n, n);
     moving.forEach(function (e) { els[to].push(e); });
     S.sel = -1; S.liftN = 0; S.moves++;
+    if (ach) ach.bump('moves');
     syncBoltAccessibility();
     announce('Moved ' + n + ' ' + movedColor + (n === 1 ? ' nut' : ' nuts') + ' from bolt ' + (from + 1) + ' to bolt ' + (to + 1) + '.');
     // any nuts that did not fit go back down
@@ -462,6 +463,8 @@
   async function win() {
     var sequence = ++winSequence;
     S.won = true;
+    var cleanWin = !S.undoUsed && !S.hintUsed && !S.extraUsed;
+    if (ach) { ach.bump('games'); ach.bump('wins'); if (cleanWin) ach.bump('clean_wins'); }
     if (S.daily) {
       SFX.win(); haptic('success');
       daily.complete(S.daily); gate.levelCompleted(S.level); persist();
@@ -474,6 +477,7 @@
     var levelKey = String(S.level), oldRecord = save.bestMoves[levelKey];
     var newRecord = !oldRecord || S.moves < oldRecord;
     if (newRecord) save.bestMoves[levelKey] = S.moves;
+    if (ach) { if (newRecord && oldRecord) ach.bump('records'); ach.max('level', S.level); }
     var firstCompletion = S.level > (save.best || 0);
     var reward = firstCompletion ? coinReward(S.level, S.colors) : 0;
     save.coins += reward;
@@ -512,7 +516,7 @@
     S.won = false;
     winSequence++;
     closeWinPanel();
-    var h = S.history.pop();
+    var h = S.history.pop(); S.undoUsed = true;
     var source = Number.isInteger(h.from) ? h.from : S.bolts.findIndex(function (bolt, i) {
       return h.bolts[i] && bolt.length > h.bolts[i].length;
     });
@@ -559,6 +563,7 @@
     window.Ads.showRewarded(function () { showHint(mv); }, function () { toast('No ad available right now. Try again in a moment.'); });
   }
   function showHint(mv) {
+    S.hintUsed = true;
     clearHint();
     boltEls[mv[0]].classList.add('hint');
     setTimeout(function () { if (boltEls[mv[1]]) boltEls[mv[1]].classList.add('hint'); }, 350);
@@ -762,10 +767,23 @@
   }, 1000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') persist(); });
 
+  // ---------------- achievements + stats ----------------
+  var ACH_DEFS = window.ACH_DEFS;
+  var ach = window.Achievements.create({
+    key: 'nutboltsort.ach.v1', defs: ACH_DEFS,
+    addCoins: function (n) { save.coins += n; persist(); setCoins(); },
+    coins: function () { return save.coins; },
+    bought: function () { return Math.max(0, save.owned.nut.length - 1) + Math.max(0, save.owned.bolt.length - 1) + Math.max(0, save.owned.bg.length - 1); },
+    toast: toast, sfx: function (k) { if (k === 'coin') SFX.coin(); else SFX.click(); },
+    stats: function (st) { var g = function (k) { return st.m[k] || 0; }; return [['Levels solved', String(g('wins'))], ['Highest level cleared', String(save.best || 0)], ['Fewest-moves records set', String(g('records'))], ['Total moves', g('moves').toLocaleString('en-US')]]; }
+  });
+  $('btn-ach-card').addEventListener('click', function () { SFX.unlock(); SFX.click(); ach.open(); });
+
   // ---------------- daily ----------------
   function dailyLevelFor(key) { return 12 + (window.DailyLogic.seedFor(key, 'nutbolt') % 40); }
   var daily = window.Daily.create({
     key: 'nutboltsort.daily.v1',
+    onEvent: function (t, d) { if (!ach) return; if (t === 'claim') { ach.bump('daily_claims'); ach.max('daily_best_day', d.day); } else { ach.bump('challenges'); ach.max('best_chal_streak', d.streak); } },
     addCoins: function (n) { save.coins += n; persist(); setCoins(); },
     rewarded: function (ok, fail) { window.Ads.showRewarded(ok, fail); },
     toast: toast, sfx: function (k) { if (k === 'coin') SFX.coin(); else SFX.click(); },
