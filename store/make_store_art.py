@@ -21,6 +21,8 @@ CAPTIONS = [
     ('04', 'STUCK? GET A HINT', 'Optional solver hint and a spare bolt'),
     ('05', 'UNLOCK SLEEK FINISHES', 'Brass, copper, titanium & more. Cosmetic only'),
     ('06', '1000+ SOLVABLE LEVELS', 'Every level verified. Play offline, no Wi-Fi'),
+    ('07', 'DAILY BOLT', 'A fresh daily level and a 7-day reward streak'),
+    ('08', 'ACHIEVEMENTS & STATS', '17 goals to chase. Track your records'),
 ]
 
 

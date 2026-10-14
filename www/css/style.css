@@ -355,3 +355,6 @@ body.bg-prism, .bg-swatch.bg-prism { background: conic-gradient(from 210deg at 5
 /* v1.4: fit the whole home menu on 360x640 without scrolling */
 @media (max-height: 760px) { #home { gap: 9px; } #home .menu-col { gap: 8px; } }
 @media (max-height: 680px) { #home { gap: 6px; padding-top: calc(var(--sat) + 4px); padding-bottom: calc(var(--sab) + 4px); } #home .logo { zoom: .5; } #home .menu-col { gap: 6px; } #home .home-link { margin: 0; } }
+.coach-tip.compact { padding: 7px 10px; font-size: 13px; line-height: 1.25; }
+.coach-tip.compact p { margin: 0 0 5px; }
+.coach-tip.compact .coach-row button { padding: 4px 10px; font-size: 13px; }
